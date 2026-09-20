@@ -1,6 +1,6 @@
 # Context actiu
 
-S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+) implementant un mecanisme de fallback en el mètode `user.login` de `backend/zabbixService.js`. També s'ha millorat el logging d'errors en les crides JSON-RPC per facilitar el diagnòstic.
+S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+) modificant el mètode `call` de `backend/zabbixService.js` per utilitzar la capçalera `Authorization: Bearer <token>` en lloc d'incloure el paràmetre `auth` en el cos JSON-RPC. S'ha implementat un mecanisme de fallback per mantenir la compatibilitat amb versions antigues de Zabbix.
 
 ## Tasques realitzades
 - [x] Configurar .roocodeignore i .roocoderules.

@@ -24,22 +24,33 @@ class ZabbixService {
         return this.authToken;
     }
 
-    async call(method, params) {
-        try {
-            const requestBody = {
-                jsonrpc: '2.0',
-                method: method,
-                params: params,
-                id: 1
-            };
-            if (this.authToken) {
+    async call(method, params, useAuthInBody = false) {
+        const requestBody = {
+            jsonrpc: '2.0',
+            method: method,
+            params: params,
+            id: 1
+        };
+        const headers = { 'Content-Type': 'application/json-rpc' };
+
+        if (this.authToken) {
+            if (useAuthInBody) {
                 requestBody.auth = this.authToken;
+            } else {
+                headers['Authorization'] = `Bearer ${this.authToken}`;
             }
-            
+        }
+
+        try {
             console.log(`Calling Zabbix API: ${method}`);
-            const response = await axios.post(this.apiUrl, requestBody);
+            const response = await axios.post(this.apiUrl, requestBody, { headers });
 
             if (response.data.error) {
+                // Si falla per autorització, provar fallback
+                if (!useAuthInBody && (response.data.error.code === -32500 || response.data.error.message.includes('Not authorized'))) {
+                    console.log('Retrying with auth in body (fallback)...');
+                    return await this.call(method, params, true);
+                }
                 console.error('Zabbix API Error Details:', JSON.stringify(response.data.error, null, 2));
                 throw new Error(`Zabbix API Error: ${response.data.error.message}`);
             }
