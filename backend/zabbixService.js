@@ -11,7 +11,8 @@ class ZabbixService {
             const requestBody = {
                 jsonrpc: '2.0',
                 method: method,
-                params: { ...params, token: this.authToken },
+                params: params,
+                auth: this.authToken,
                 id: 1
             };
             console.log('Request Body:', JSON.stringify(requestBody));
