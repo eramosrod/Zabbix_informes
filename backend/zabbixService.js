@@ -121,8 +121,7 @@ class ZabbixService {
             hostids: hostIds,
             time_from: timeFrom,
             time_till: timeTill,
-            output: 'extend',
-            selectHosts: ['name']
+            output: 'extend'
         });
         
         // Processar i agrupar
