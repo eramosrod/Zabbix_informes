@@ -126,13 +126,28 @@ class ZabbixService {
     }
 
     async getIcmpLoss(hostIds, timeFrom, timeTill) {
-        // Implementación para obtener Pérdida ICMP
-        return await this.call('history.get', {
+        // 1. Obtenir els itemids per a 'icmpping'
+        const items = await this.call('item.get', {
             hostids: hostIds,
             search: { key_: 'icmpping' },
+            output: ['itemid']
+        });
+
+        const itemIds = items.map(item => item.itemid);
+
+        if (itemIds.length === 0) {
+            return [];
+        }
+
+        // 2. Obtenir l'historial
+        return await this.call('history.get', {
+            itemids: itemIds,
+            history: 3, // 3 per a enter (icmpping)
             time_from: timeFrom,
             time_till: timeTill,
-            output: 'extend'
+            output: 'extend',
+            sortfield: 'clock',
+            sortorder: 'ASC'
         });
     }
 }

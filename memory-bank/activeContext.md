@@ -11,3 +11,4 @@ S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+)
 - [x] Implementar dashboard i exportació a PDF (Paso 4).
 - [x] Solucionar error d'autenticació Zabbix API (fallback `user.login`).
 - [x] Auditar mètodes JSON-RPC i millorar logging d'errors.
+- [x] Corregir paràmetres en `history.get` (eliminar `search` i utilitzar `item.get` previ).
