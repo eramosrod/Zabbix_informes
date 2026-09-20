@@ -8,3 +8,5 @@
 - [x] Implementar frontend (Paso 2: Filtres i consulta a Zabbix).
 - [x] Implementar lògica de dades (Paso 3: Obtenció de mètriques).
 - [x] Implementar dashboard i exportació a PDF (Paso 4).
+- [x] Solucionar error d'autenticació Zabbix API (fallback `user.login`).
+- [x] Auditar mètodes JSON-RPC i millorar logging d'errors.

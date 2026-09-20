@@ -7,10 +7,20 @@ class ZabbixService {
     }
 
     async login(username, password) {
-        this.authToken = await this.call('user.login', {
-            user: username,
-            password: password
-        });
+        try {
+            // Intentar amb "username" (Zabbix 6.4/7.0+)
+            this.authToken = await this.call('user.login', {
+                username: username,
+                password: password
+            });
+        } catch (error) {
+            console.log('Retrying login with "user" parameter (fallback)...');
+            // Fallback a "user" (versions antigues)
+            this.authToken = await this.call('user.login', {
+                user: username,
+                password: password
+            });
+        }
         return this.authToken;
     }
 
@@ -25,16 +35,21 @@ class ZabbixService {
             if (this.authToken) {
                 requestBody.auth = this.authToken;
             }
-            console.log('Request Body:', JSON.stringify(requestBody));
+            
+            console.log(`Calling Zabbix API: ${method}`);
             const response = await axios.post(this.apiUrl, requestBody);
 
             if (response.data.error) {
-                throw new Error(`Zabbix API Error: ${response.data.error.message} - ${response.data.error.data}`);
+                console.error('Zabbix API Error Details:', JSON.stringify(response.data.error, null, 2));
+                throw new Error(`Zabbix API Error: ${response.data.error.message}`);
             }
 
             return response.data.result;
         } catch (error) {
-            console.error('Error calling Zabbix API:', error);
+            console.error(`Error calling Zabbix API (${method}):`, error.message);
+            if (error.response && error.response.data) {
+                console.error('Response Data:', JSON.stringify(error.response.data, null, 2));
+            }
             throw error;
         }
     }
