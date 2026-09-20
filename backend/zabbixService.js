@@ -11,7 +11,8 @@ class ZabbixService {
             const response = await axios.post(this.apiUrl, {
                 jsonrpc: '2.0',
                 method: method,
-                params: { ...params, auth: this.authToken },
+                params: params,
+                auth: this.authToken,
                 id: 1
             });
 
