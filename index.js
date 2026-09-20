@@ -33,13 +33,16 @@ app.post('/api/report', async (req, res) => {
     const hostIds = (await zabbixService.getHostsInGroup(groupIds)).map(h => h.hostid);
     
     const rawData = await zabbixService.getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill);
+    console.log('Raw data from Zabbix:', JSON.stringify(rawData, null, 2));
     const processedData = {
+        servers: [], // Inicialitzem com a array buit per evitar l'error
         cpu: DataProcessor.processCpuData(rawData.cpu),
         memory: DataProcessor.processMemoryData(rawData.memory),
         disk: DataProcessor.processDiskData(rawData.disk),
         alerts: rawData.alerts,
         icmp: rawData.icmp
     };
+    console.log('Processed data:', JSON.stringify(processedData, null, 2));
     res.json(processedData);
 });
 
