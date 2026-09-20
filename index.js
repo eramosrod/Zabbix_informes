@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const ZabbixService = require('./backend/zabbixService');
+const DataProcessor = require('./backend/dataProcessor');
 const app = express();
 const port = 3000;
 
@@ -31,14 +32,15 @@ app.post('/api/report', async (req, res) => {
     const { groupIds, timeFrom, timeTill } = req.body;
     const hostIds = (await zabbixService.getHostsInGroup(groupIds)).map(h => h.hostid);
     
-    const data = {
-        cpu: await zabbixService.getTopCpuUsage(hostIds, timeFrom, timeTill),
-        memory: await zabbixService.getTopMemoryUsage(hostIds, timeFrom, timeTill),
-        disk: await zabbixService.getTopDiskUsage(hostIds),
-        alerts: await zabbixService.getAlerts(hostIds, timeFrom, timeTill),
-        icmp: await zabbixService.getIcmpLoss(hostIds, timeFrom, timeTill)
+    const rawData = await zabbixService.getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill);
+    const processedData = {
+        cpu: DataProcessor.processCpuData(rawData.cpu),
+        memory: DataProcessor.processMemoryData(rawData.memory),
+        disk: DataProcessor.processDiskData(rawData.disk),
+        alerts: rawData.alerts,
+        icmp: rawData.icmp
     };
-    res.json(data);
+    res.json(processedData);
 });
 
 app.listen(port, () => {

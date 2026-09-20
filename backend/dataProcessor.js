@@ -11,20 +11,29 @@ class DataProcessor {
         return parseFloat(value).toFixed(2) + '%';
     }
 
+    static getThresholdStatus(value) {
+        if (value > 90) return 'red';
+        if (value > 70) return 'yellow';
+        return 'green';
+    }
+
     static processMemoryData(data) {
         const grouped = data.reduce((acc, item) => {
             if (!acc[item.hostid]) {
                 acc[item.hostid] = { host: item.hostname, memory_used: 0, total: 0 };
             }
-            // Asumimos que los ítems tienen un nombre que identifica si es usado o total
             if (item.name.includes('Used')) acc[item.hostid].memory_used = parseFloat(item.lastvalue);
             if (item.name.includes('Total')) acc[item.hostid].total = parseFloat(item.lastvalue);
             return acc;
         }, {});
-        return Object.values(grouped).map(item => ({
-            ...item,
-            percentage: (item.memory_used / item.total * 100).toFixed(2)
-        }));
+        return Object.values(grouped).map(item => {
+            const percentage = (item.memory_used / item.total * 100);
+            return {
+                ...item,
+                percentage: percentage.toFixed(2),
+                status: this.getThresholdStatus(percentage)
+            };
+        });
     }
 
     static processCpuData(data) {
@@ -35,7 +44,10 @@ class DataProcessor {
             acc[item.hostid].cpu_load = parseFloat(item.lastvalue);
             return acc;
         }, {});
-        return Object.values(grouped);
+        return Object.values(grouped).map(item => ({
+            ...item,
+            status: this.getThresholdStatus(item.cpu_load)
+        }));
     }
 
     static processDiskData(data) {
@@ -46,7 +58,10 @@ class DataProcessor {
             acc[item.hostid].usage = parseFloat(item.lastvalue);
             return acc;
         }, {});
-        return Object.values(grouped);
+        return Object.values(grouped).map(item => ({
+            ...item,
+            status: this.getThresholdStatus(item.usage)
+        }));
     }
 }
 

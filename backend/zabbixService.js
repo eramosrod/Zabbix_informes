@@ -80,11 +80,39 @@ class ZabbixService {
         return result;
     }
 
-    async getHostData(hostIds, timeFrom, timeTill) {
+    async getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill) {
         // Obtenir dades consolidades per a la taula de servidors
-        // ICMP, CPU, MEM, DISK
-        // ... implementació ...
-        return {}; // Placeholder
+        // CPU, MEM, DISK, ICMP, ALERTS
+        const [cpu, memory, disk, icmp, alerts] = await Promise.all([
+            this.getMetricData(hostIds, 'system.cpu.util', timeFrom, timeTill),
+            this.getMetricData(hostIds, 'vm.memory.size[pused]', timeFrom, timeTill),
+            this.getMetricData(hostIds, 'vfs.fs.size[/,pused]', timeFrom, timeTill),
+            this.getIcmpLoss(hostIds, timeFrom, timeTill),
+            this.getTopTriggers(hostIds, timeFrom, timeTill)
+        ]);
+
+        return { cpu, memory, disk, icmp, alerts };
+    }
+
+    async getMetricData(hostIds, key, timeFrom, timeTill) {
+        const items = await this.call('item.get', {
+            hostids: hostIds,
+            search: { key_: key },
+            output: ['itemid', 'hostid']
+        });
+
+        const itemIds = items.map(item => item.itemid);
+        if (itemIds.length === 0) return [];
+
+        return await this.call('history.get', {
+            itemids: itemIds,
+            history: 0, // 0 per a float
+            time_from: timeFrom,
+            time_till: timeTill,
+            output: 'extend',
+            sortfield: 'clock',
+            sortorder: 'ASC'
+        });
     }
 
     async getTopTriggers(hostIds, timeFrom, timeTill) {
