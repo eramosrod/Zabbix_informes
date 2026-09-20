@@ -45,8 +45,18 @@ function renderDashboard(data) {
     document.getElementById('host-group').textContent = document.getElementById('host-group-select').options[document.getElementById('host-group-select').selectedIndex].text;
     document.getElementById('report-date').textContent = `${document.getElementById('timeFrom').value} a ${document.getElementById('timeTill').value}`;
     
-    renderServersTable(data.servers);
-    renderTopTriggersTable(data.topTriggers);
+    try {
+        renderServersTable(data?.servers || []);
+    } catch (e) {
+        console.error('Error rendering servers table:', e);
+    }
+
+    try {
+        const triggersData = data?.topTriggers || [];
+        renderTopTriggersTable(triggersData);
+    } catch (e) {
+        console.error('Error rendering top triggers table:', e);
+    }
 }
 
 function getBadge(value, type) {
@@ -89,14 +99,25 @@ function renderServersTable(data) {
 function renderTopTriggersTable(data) {
     const body = document.getElementById('top-triggers-body');
     body.innerHTML = '';
-    data.forEach(item => {
-        const severityClass = `severity-${item.severity.toLowerCase()}`;
+    
+    const triggersList = Array.isArray(data) ? data : [];
+
+    if (triggersList.length === 0) {
+        body.innerHTML = '<tr><td colspan="5">No data</td></tr>';
+        return;
+    }
+
+    triggersList.forEach(item => {
+        const severity = item.severity || 'Unknown';
+        const severityClass = `severity-${severity.toLowerCase()}`;
+        const hosts = Array.isArray(item.hosts) ? item.hosts.join(', ') : 'N/A';
+        
         body.innerHTML += `<tr>
-            <td>${item.trigger}</td>
-            <td><span class="badge ${severityClass}">${item.severity}</span></td>
-            <td>${item.hosts.join(', ')}</td>
-            <td>${item.count}</td>
-            <td>${item.lastState}</td>
+            <td>${item.trigger || 'N/A'}</td>
+            <td><span class="badge ${severityClass}">${severity}</span></td>
+            <td>${hosts}</td>
+            <td>${item.count || 0}</td>
+            <td>${item.lastState || 'N/A'}</td>
         </tr>`;
     });
 }

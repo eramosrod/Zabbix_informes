@@ -37,26 +37,14 @@ app.post('/api/report', async (req, res) => {
     // Intentem reconstruir la llista de servidors a partir de les dades rebudes
     const hostMap = new Map();
     
-    // Helper per afegir dades al mapa
-    const addData = (data, key) => {
-        data.forEach(item => {
-            if (!hostMap.has(item.hostid)) {
-                hostMap.set(item.hostid, { hostid: item.hostid, host: item.hostname || 'Desconegut', icmp: 'N/D', cpu: 'N/D', memory: 'N/D', disk: 'N/D' });
-            }
-            hostMap.get(item.hostid)[key] = item.lastvalue;
-        });
-    };
-
-    // Això és una aproximació, depèn de com estiguin estructurades les dades de rawData
-    // Caldria ajustar segons l'estructura real de rawData.cpu, rawData.memory, etc.
-    
     const processedData = {
-        servers: Array.from(hostMap.values()),
+        servers: [],
         cpu: DataProcessor.processCpuData(rawData.cpu),
         memory: DataProcessor.processMemoryData(rawData.memory),
         disk: DataProcessor.processDiskData(rawData.disk),
         alerts: rawData.alerts,
-        icmp: rawData.icmp
+        icmp: rawData.icmp,
+        topTriggers: rawData.alerts || []
     };
     res.json(processedData);
 });

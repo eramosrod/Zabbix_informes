@@ -12,3 +12,4 @@ S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+)
 - [x] Solucionar error d'autenticació Zabbix API (fallback `user.login`).
 - [x] Auditar mètodes JSON-RPC i millorar logging d'errors.
 - [x] Corregir paràmetres en `history.get` (eliminar `search` i utilitzar `item.get` previ).
+- [x] Solucionar runtime exception "Uncaught (in promise) TypeError: can't access property 'forEach', data is undefined" mitjançant programació defensiva al frontend i garantint arrays al backend.
