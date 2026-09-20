@@ -124,6 +124,8 @@ class ZabbixService {
             output: 'extend'
         });
         
+        console.log('Problems returned from Zabbix:', JSON.stringify(problems, null, 2));
+        
         // Processar i agrupar
         return problems;
     }
