@@ -80,49 +80,25 @@ class ZabbixService {
         return result;
     }
 
-    async getTopMemoryUsage(hostIds, timeFrom, timeTill) {
-        // Implementación para obtener TOP 10 Memoria
-        return await this.call('trend.get', {
-            hostids: hostIds,
-            output: ['itemid', 'value_avg'],
-            time_from: timeFrom,
-            time_till: timeTill,
-            sortfield: 'value_avg',
-            sortorder: 'DESC',
-            limit: 10
-        });
+    async getHostData(hostIds, timeFrom, timeTill) {
+        // Obtenir dades consolidades per a la taula de servidors
+        // ICMP, CPU, MEM, DISK
+        // ... implementació ...
+        return {}; // Placeholder
     }
 
-    async getTopCpuUsage(hostIds, timeFrom, timeTill) {
-        // Implementación para obtener TOP 10 CPU
-        return await this.call('trend.get', {
-            hostids: hostIds,
-            output: ['itemid', 'value_avg'],
-            time_from: timeFrom,
-            time_till: timeTill,
-            sortfield: 'value_avg',
-            sortorder: 'DESC',
-            limit: 10
-        });
-    }
-
-    async getTopDiskUsage(hostIds) {
-        // Implementación para obtener TOP 10 Discos
-        return await this.call('item.get', {
-            hostids: hostIds,
-            search: { key_: 'vfs.fs.size' },
-            output: ['itemid', 'name', 'lastvalue']
-        });
-    }
-
-    async getAlerts(hostIds, timeFrom, timeTill) {
-        // Implementación para obtener Alertas
-        return await this.call('problem.get', {
+    async getTopTriggers(hostIds, timeFrom, timeTill) {
+        // Implementació per obtenir Top Triggers
+        const problems = await this.call('problem.get', {
             hostids: hostIds,
             time_from: timeFrom,
             time_till: timeTill,
-            output: 'extend'
+            output: 'extend',
+            selectHosts: ['name']
         });
+        
+        // Processar i agrupar
+        return problems;
     }
 
     async getIcmpLoss(hostIds, timeFrom, timeTill) {

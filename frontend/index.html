@@ -37,37 +37,35 @@
                 <div class="card">Total Problemes: <span id="total-alerts">0</span></div>
             </section>
             <section id="tables" class="grid-container">
-                <div class="table-card">
-                    <h2>TOP 10 Consum CPU</h2>
-                    <table id="cpu-table"></table>
-                </div>
-                <div class="table-card">
-                    <h2>TOP 10 Consum Memòria</h2>
-                    <table id="memory-table"></table>
-                </div>
-                <div class="table-card">
-                    <h2>TOP 10 Discos en Risc</h2>
-                    <table id="disk-table"></table>
-                </div>
                 <div class="table-card full-width">
-                    <h2>Alertes (Top Triggers)</h2>
-                    <table id="alerts-table">
+                    <h2>Taula Consolidada de Servidors</h2>
+                    <table id="servers-table">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th>Recovery Time</th>
-                                <th>Status</th>
-                                <th>Host</th>
-                                <th>Problem / Severity</th>
-                                <th>Duration</th>
+                                <th>Nombre HOST</th>
+                                <th>ICMP</th>
+                                <th>CPU</th>
+                                <th>MEMORIA</th>
+                                <th>DISCO</th>
                             </tr>
                         </thead>
-                        <tbody id="alerts-body"></tbody>
+                        <tbody id="servers-body"></tbody>
                     </table>
                 </div>
                 <div class="table-card full-width">
-                    <h2>Conectivitat ICMP</h2>
-                    <table id="icmp-table"></table>
+                    <h2>Top Triggers</h2>
+                    <table id="top-triggers-table">
+                        <thead>
+                            <tr>
+                                <th>Trigger / Problema</th>
+                                <th>Severidad</th>
+                                <th>Host / Servidores Afectados</th>
+                                <th>Nº de Ocurrencias</th>
+                                <th>Último Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-triggers-body"></tbody>
+                    </table>
                 </div>
             </section>
         </main>

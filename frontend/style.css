@@ -77,6 +77,13 @@ th {
 .severity-warning { background-color: #FFF000; }
 .severity-information { background-color: #7499FF; color: white; }
 
+/* Badges */
+.badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em; }
+.badge-green { background-color: #28a745; color: white; }
+.badge-yellow { background-color: #ffc107; color: black; }
+.badge-red { background-color: #dc3545; color: white; }
+.badge-gray { background-color: #6c757d; color: white; }
+
 @media print {
     body { background-color: white; }
     #export-pdf, #login-form, #filters { display: none; }

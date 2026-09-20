@@ -45,51 +45,58 @@ function renderDashboard(data) {
     document.getElementById('host-group').textContent = document.getElementById('host-group-select').options[document.getElementById('host-group-select').selectedIndex].text;
     document.getElementById('report-date').textContent = `${document.getElementById('timeFrom').value} a ${document.getElementById('timeTill').value}`;
     
-    document.getElementById('total-alerts').textContent = data.alerts.length;
+    renderServersTable(data.servers);
+    renderTopTriggersTable(data.topTriggers);
+}
+
+function getBadge(value, type) {
+    if (value === undefined || value === null || value === 'N/D') return '<span class="badge badge-gray">N/D</span>';
     
-    renderCpuTable(data.cpu);
-    renderMemoryTable(data.memory);
-    renderDiskTable(data.disk);
-    renderAlertsTable(data.alerts);
+    let colorClass = 'badge-gray';
+    if (type === 'icmp') {
+        colorClass = value == 1 ? 'badge-green' : 'badge-red';
+        return `<span class="badge ${colorClass}">${value == 1 ? 'UP' : 'DOWN'}</span>`;
+    }
+    
+    const numValue = parseFloat(value);
+    if (type === 'cpu' || type === 'disk') {
+        if (numValue < 80) colorClass = 'badge-green';
+        else if (numValue <= 90) colorClass = 'badge-yellow';
+        else colorClass = 'badge-red';
+    } else if (type === 'memory') {
+        if (numValue > 10) colorClass = 'badge-green';
+        else if (numValue > 5) colorClass = 'badge-yellow';
+        else colorClass = 'badge-red';
+    }
+    
+    return `<span class="badge ${colorClass}">${value}%</span>`;
 }
 
-function renderCpuTable(data) {
-    const table = document.getElementById('cpu-table');
-    table.innerHTML = '<tr><th>Host</th><th>CPU (%)</th><th>Carga</th></tr>';
-    data.forEach(item => {
-        table.innerHTML += `<tr><td>${item.host}</td><td>${item.cpu_load}%</td><td>-</td></tr>`;
-    });
-}
-
-function renderMemoryTable(data) {
-    const table = document.getElementById('memory-table');
-    table.innerHTML = '<tr><th>Host</th><th>Memòria (%)</th><th>Barra</th></tr>';
-    data.forEach(item => {
-        const color = item.percentage < 75 ? 'green' : (item.percentage < 90 ? 'orange' : 'red');
-        table.innerHTML += `<tr><td>${item.host}</td><td>${item.percentage}%</td><td><div class="progress-bar"><div class="progress-fill" style="width:${item.percentage}%; background-color:${color}"></div></div></td></tr>`;
-    });
-}
-
-function renderDiskTable(data) {
-    const table = document.getElementById('disk-table');
-    table.innerHTML = '<tr><th>Host</th><th>Disc</th><th>Ocupació (%)</th></tr>';
-    data.forEach(item => {
-        table.innerHTML += `<tr><td>${item.host}</td><td>${item.disk}</td><td>${item.usage}%</td></tr>`;
-    });
-}
-
-function renderAlertsTable(data) {
-    const body = document.getElementById('alerts-body');
+function renderServersTable(data) {
+    const body = document.getElementById('servers-body');
     body.innerHTML = '';
-    data.forEach(alert => {
-        const severityClass = `severity-${alert.severity.toLowerCase()}`;
+    data.forEach(item => {
         body.innerHTML += `<tr>
-            <td>${new Date(alert.clock * 1000).toLocaleString()}</td>
-            <td>${alert.r_clock ? new Date(alert.r_clock * 1000).toLocaleString() : 'Problem'}</td>
-            <td>${alert.r_clock ? 'RESOLVED' : 'PROBLEM'}</td>
-            <td>${alert.host}</td>
-            <td class="${severityClass}">${alert.description}</td>
-            <td>${alert.duration}</td>
+            <td>${item.host}</td>
+            <td>${getBadge(item.icmp, 'icmp')}</td>
+            <td>${getBadge(item.cpu, 'cpu')}</td>
+            <td>${getBadge(item.memory, 'memory')}</td>
+            <td>${getBadge(item.disk, 'disk')}</td>
+        </tr>`;
+    });
+}
+
+function renderTopTriggersTable(data) {
+    const body = document.getElementById('top-triggers-body');
+    body.innerHTML = '';
+    data.forEach(item => {
+        const severityClass = `severity-${item.severity.toLowerCase()}`;
+        body.innerHTML += `<tr>
+            <td>${item.trigger}</td>
+            <td><span class="badge ${severityClass}">${item.severity}</span></td>
+            <td>${item.hosts.join(', ')}</td>
+            <td>${item.count}</td>
+            <td>${item.lastState}</td>
         </tr>`;
     });
 }
