@@ -12,27 +12,41 @@ class DataProcessor {
     }
 
     static processMemoryData(data) {
-        // Lógica para procesar y estandarizar datos de memoria
-        return data.map(item => ({
+        const grouped = data.reduce((acc, item) => {
+            if (!acc[item.hostid]) {
+                acc[item.hostid] = { host: item.hostname, memory_used: 0, total: 0 };
+            }
+            // Asumimos que los ítems tienen un nombre que identifica si es usado o total
+            if (item.name.includes('Used')) acc[item.hostid].memory_used = parseFloat(item.lastvalue);
+            if (item.name.includes('Total')) acc[item.hostid].total = parseFloat(item.lastvalue);
+            return acc;
+        }, {});
+        return Object.values(grouped).map(item => ({
             ...item,
-            value_avg: this.formatPercentage(item.value_avg)
+            percentage: (item.memory_used / item.total * 100).toFixed(2)
         }));
     }
 
     static processCpuData(data) {
-        // Lógica para procesar y estandarizar datos de CPU
-        return data.map(item => ({
-            ...item,
-            value_avg: this.formatPercentage(item.value_avg)
-        }));
+        const grouped = data.reduce((acc, item) => {
+            if (!acc[item.hostid]) {
+                acc[item.hostid] = { host: item.hostname, cpu_load: 0 };
+            }
+            acc[item.hostid].cpu_load = parseFloat(item.lastvalue);
+            return acc;
+        }, {});
+        return Object.values(grouped);
     }
 
     static processDiskData(data) {
-        // Lógica para procesar y estandarizar datos de discos
-        return data.map(item => ({
-            ...item,
-            lastvalue: this.formatBytes(item.lastvalue)
-        }));
+        const grouped = data.reduce((acc, item) => {
+            if (!acc[item.hostid]) {
+                acc[item.hostid] = { host: item.hostname, disk: item.name, usage: 0 };
+            }
+            acc[item.hostid].usage = parseFloat(item.lastvalue);
+            return acc;
+        }, {});
+        return Object.values(grouped);
     }
 }
 

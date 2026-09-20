@@ -11,3 +11,4 @@
 - [x] Solucionar error d'autenticació Zabbix API (fallback `user.login`).
 - [x] Auditar mètodes JSON-RPC i millorar logging d'errors.
 - [x] Corregir paràmetres en `history.get` (eliminar `search` i utilitzar `item.get` previ).
+- [x] Redisseny visual del informe (Dashboard executiu, grilla, consolidació per host).

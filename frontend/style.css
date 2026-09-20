@@ -1,7 +1,7 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f8f9fa;
-    color: #343a40;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+    color: #333;
     margin: 0;
     padding: 20px;
 }
@@ -13,43 +13,73 @@ header {
     padding: 20px;
     background-color: #fff;
     border-bottom: 2px solid #007bff;
+    margin-bottom: 20px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
 }
 
 .card {
     background-color: #fff;
     padding: 20px;
-    margin: 10px;
-    border-radius: 5px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    font-weight: bold;
+}
+
+.table-card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-#kpis {
-    display: flex;
-    justify-content: space-around;
+.full-width {
+    grid-column: 1 / -1;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
 th, td {
-    padding: 10px;
+    padding: 12px;
     border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+th {
+    background-color: #f8f9fa;
 }
 
 .progress-bar {
-    height: 20px;
+    height: 15px;
     background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .progress-fill {
     height: 100%;
 }
 
+/* Severities */
+.severity-disaster { background-color: #FF4646; color: white; }
+.severity-high { background-color: #FF8888; }
+.severity-average { background-color: #FFAA44; }
+.severity-warning { background-color: #FFF000; }
+.severity-information { background-color: #7499FF; color: white; }
+
 @media print {
-    #export-pdf {
-        display: none;
-    }
+    body { background-color: white; }
+    #export-pdf, #login-form, #filters { display: none; }
+    .card, .table-card { box-shadow: none; border: 1px solid #ccc; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }

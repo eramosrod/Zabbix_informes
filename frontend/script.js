@@ -42,8 +42,56 @@ document.getElementById('generate-report').addEventListener('click', async () =>
 
 function renderDashboard(data) {
     document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('host-group').textContent = document.getElementById('host-group-select').options[document.getElementById('host-group-select').selectedIndex].text;
+    document.getElementById('report-date').textContent = `${document.getElementById('timeFrom').value} a ${document.getElementById('timeTill').value}`;
+    
     document.getElementById('total-alerts').textContent = data.alerts.length;
-    // ... render tables ...
+    
+    renderCpuTable(data.cpu);
+    renderMemoryTable(data.memory);
+    renderDiskTable(data.disk);
+    renderAlertsTable(data.alerts);
+}
+
+function renderCpuTable(data) {
+    const table = document.getElementById('cpu-table');
+    table.innerHTML = '<tr><th>Host</th><th>CPU (%)</th><th>Carga</th></tr>';
+    data.forEach(item => {
+        table.innerHTML += `<tr><td>${item.host}</td><td>${item.cpu_load}%</td><td>-</td></tr>`;
+    });
+}
+
+function renderMemoryTable(data) {
+    const table = document.getElementById('memory-table');
+    table.innerHTML = '<tr><th>Host</th><th>Memòria (%)</th><th>Barra</th></tr>';
+    data.forEach(item => {
+        const color = item.percentage < 75 ? 'green' : (item.percentage < 90 ? 'orange' : 'red');
+        table.innerHTML += `<tr><td>${item.host}</td><td>${item.percentage}%</td><td><div class="progress-bar"><div class="progress-fill" style="width:${item.percentage}%; background-color:${color}"></div></div></td></tr>`;
+    });
+}
+
+function renderDiskTable(data) {
+    const table = document.getElementById('disk-table');
+    table.innerHTML = '<tr><th>Host</th><th>Disc</th><th>Ocupació (%)</th></tr>';
+    data.forEach(item => {
+        table.innerHTML += `<tr><td>${item.host}</td><td>${item.disk}</td><td>${item.usage}%</td></tr>`;
+    });
+}
+
+function renderAlertsTable(data) {
+    const body = document.getElementById('alerts-body');
+    body.innerHTML = '';
+    data.forEach(alert => {
+        const severityClass = `severity-${alert.severity.toLowerCase()}`;
+        body.innerHTML += `<tr>
+            <td>${new Date(alert.clock * 1000).toLocaleString()}</td>
+            <td>${alert.r_clock ? new Date(alert.r_clock * 1000).toLocaleString() : 'Problem'}</td>
+            <td>${alert.r_clock ? 'RESOLVED' : 'PROBLEM'}</td>
+            <td>${alert.host}</td>
+            <td class="${severityClass}">${alert.description}</td>
+            <td>${alert.duration}</td>
+        </tr>`;
+    });
 }
 
 document.getElementById('export-pdf').addEventListener('click', () => {

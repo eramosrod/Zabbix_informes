@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Zabbix</title>
+    <title>Dashboard Zabbix Executiu</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -22,29 +22,53 @@
     </div>
     <div id="dashboard" style="display:none;">
         <header>
-            <h1>Informe Zabbix</h1>
+            <div class="logo">Logo</div>
             <div id="header-info">
-                <p>Host Group: <span id="host-group"></span></p>
-                <p>Data: <span id="report-date"></span></p>
+                <h1>Informe Zabbix: <span id="host-group"></span></h1>
+                <p>Rango: <span id="report-date"></span></p>
             </div>
             <button id="export-pdf">Exportar a PDF</button>
         </header>
         <main>
-            <section id="kpis">
-                <div class="card">Total Alertes: <span id="total-alerts">0</span></div>
-                <div class="card">Corts ICMP: <span id="icmp-cuts">0</span></div>
+            <section id="kpis" class="grid-container">
+                <div class="card">Uptime Mitjà: <span id="uptime-avg">0%</span></div>
+                <div class="card">% Memòria Global: <span id="mem-avg">0%</span></div>
+                <div class="card">% CPU Lliure: <span id="cpu-free">0%</span></div>
+                <div class="card">Total Problemes: <span id="total-alerts">0</span></div>
             </section>
-            <section id="tables">
-                <h2>TOP 10 CPU</h2>
-                <table id="cpu-table"></table>
-                <h2>TOP 10 Memòria</h2>
-                <table id="memory-table"></table>
-                <h2>TOP 10 Discos</h2>
-                <table id="disk-table"></table>
-                <h2>Alertes</h2>
-                <div id="alerts-badges"></div>
-                <h2>Conectivitat ICMP</h2>
-                <table id="icmp-table"></table>
+            <section id="tables" class="grid-container">
+                <div class="table-card">
+                    <h2>TOP 10 Consum CPU</h2>
+                    <table id="cpu-table"></table>
+                </div>
+                <div class="table-card">
+                    <h2>TOP 10 Consum Memòria</h2>
+                    <table id="memory-table"></table>
+                </div>
+                <div class="table-card">
+                    <h2>TOP 10 Discos en Risc</h2>
+                    <table id="disk-table"></table>
+                </div>
+                <div class="table-card full-width">
+                    <h2>Alertes (Top Triggers)</h2>
+                    <table id="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Recovery Time</th>
+                                <th>Status</th>
+                                <th>Host</th>
+                                <th>Problem / Severity</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alerts-body"></tbody>
+                    </table>
+                </div>
+                <div class="table-card full-width">
+                    <h2>Conectivitat ICMP</h2>
+                    <table id="icmp-table"></table>
+                </div>
             </section>
         </main>
     </div>
