@@ -9,10 +9,15 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 
 let zabbixService = null;
 
-app.post('/api/login', (req, res) => {
-    const { apiUrl, authToken } = req.body;
-    zabbixService = new ZabbixService(apiUrl, authToken);
-    res.json({ success: true });
+app.post('/api/login', async (req, res) => {
+    const { apiUrl, username, password } = req.body;
+    zabbixService = new ZabbixService(apiUrl);
+    try {
+        await zabbixService.login(username, password);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(401).json({ error: 'Autenticació fallida' });
+    }
 });
 
 app.get('/api/hostgroups', async (req, res) => {

@@ -1,9 +1,17 @@
 const axios = require('axios');
 
 class ZabbixService {
-    constructor(apiUrl, authToken) {
+    constructor(apiUrl) {
         this.apiUrl = apiUrl;
-        this.authToken = authToken;
+        this.authToken = null;
+    }
+
+    async login(username, password) {
+        this.authToken = await this.call('user.login', {
+            user: username,
+            password: password
+        });
+        return this.authToken;
     }
 
     async call(method, params) {
@@ -12,9 +20,11 @@ class ZabbixService {
                 jsonrpc: '2.0',
                 method: method,
                 params: params,
-                auth: this.authToken,
                 id: 1
             };
+            if (this.authToken) {
+                requestBody.auth = this.authToken;
+            }
             console.log('Request Body:', JSON.stringify(requestBody));
             const response = await axios.post(this.apiUrl, requestBody);
 

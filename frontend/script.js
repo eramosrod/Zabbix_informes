@@ -1,10 +1,11 @@
 document.getElementById('login-btn').addEventListener('click', async () => {
     const apiUrl = document.getElementById('apiUrl').value;
-    const authToken = document.getElementById('authToken').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
     const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiUrl, authToken })
+        body: JSON.stringify({ apiUrl, username, password })
     });
     if (response.ok) {
         document.getElementById('login-form').style.display = 'none';
