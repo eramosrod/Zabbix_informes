@@ -8,13 +8,15 @@ class ZabbixService {
 
     async call(method, params) {
         try {
-            const response = await axios.post(this.apiUrl, {
+            const requestBody = {
                 jsonrpc: '2.0',
                 method: method,
                 params: params,
                 auth: this.authToken,
                 id: 1
-            });
+            };
+            console.log('Request Body:', JSON.stringify(requestBody));
+            const response = await axios.post(this.apiUrl, requestBody);
 
             if (response.data.error) {
                 throw new Error(`Zabbix API Error: ${response.data.error.message} - ${response.data.error.data}`);
