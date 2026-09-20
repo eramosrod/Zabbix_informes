@@ -8,7 +8,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-    <div id="dashboard">
+    <div id="login-form">
+        <input type="text" id="apiUrl" placeholder="URL API Zabbix">
+        <input type="text" id="authToken" placeholder="Token Auth">
+        <button id="login-btn">Login</button>
+    </div>
+    <div id="filters" style="display:none;">
+        <select id="host-group-select"></select>
+        <input type="datetime-local" id="timeFrom">
+        <input type="datetime-local" id="timeTill">
+        <button id="generate-report">Generar Informe</button>
+    </div>
+    <div id="dashboard" style="display:none;">
         <header>
             <h1>Informe Zabbix</h1>
             <div id="header-info">
