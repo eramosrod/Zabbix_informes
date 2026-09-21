@@ -15,3 +15,4 @@
 - [x] Refactorització backend/frontend: Taula consolidada, Top Triggers i maneig de valors undefined.
 - [x] Refactorització backend: Implementar `getHostsConsolidatedMetrics` i eliminar mètodes obsolets.
 - [x] Implementar lògica de llindars (thresholds) a `backend/dataProcessor.js`.
+- [x] Auditoría Full-Stack y Refactorización Senior: Depuración Integral de la Aplicación Zabbix Reports.

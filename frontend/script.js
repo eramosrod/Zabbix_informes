@@ -85,9 +85,15 @@ function getBadge(value, type) {
 function renderServersTable(data) {
     const body = document.getElementById('servers-body');
     body.innerHTML = '';
+    
+    if (!Array.isArray(data) || data.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="text-center">No se encontraron servidores en el grupo y rango seleccionados.</td></tr>';
+        return;
+    }
+
     data.forEach(item => {
         body.innerHTML += `<tr>
-            <td>${item.host}</td>
+            <td>${item.host || 'N/D'}</td>
             <td>${getBadge(item.icmp, 'icmp')}</td>
             <td>${getBadge(item.cpu, 'cpu')}</td>
             <td>${getBadge(item.memory, 'memory')}</td>
@@ -103,7 +109,7 @@ function renderTopTriggersTable(data) {
     const triggersList = Array.isArray(data) ? data : [];
 
     if (triggersList.length === 0) {
-        body.innerHTML = '<tr><td colspan="5">No data</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="text-center">No se encontraron alertas en el grupo y rango seleccionados.</td></tr>';
         return;
     }
 

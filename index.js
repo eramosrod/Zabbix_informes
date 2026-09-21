@@ -28,25 +28,39 @@ app.get('/api/hostgroups', async (req, res) => {
 });
 
 app.post('/api/report', async (req, res) => {
+    console.log('--- Iniciant petició /api/report ---');
+    console.log('Paràmetres rebuts:', JSON.stringify(req.body, null, 2));
+    
     if (!zabbixService) return res.status(401).json({ error: 'No autenticat' });
-    const { groupIds, timeFrom, timeTill } = req.body;
-    const hostIds = (await zabbixService.getHostsInGroup(groupIds)).map(h => h.hostid);
     
-    const rawData = await zabbixService.getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill);
-    
-    // Intentem reconstruir la llista de servidors a partir de les dades rebudes
-    const hostMap = new Map();
-    
-    const processedData = {
-        servers: [],
-        cpu: DataProcessor.processCpuData(rawData.cpu),
-        memory: DataProcessor.processMemoryData(rawData.memory),
-        disk: DataProcessor.processDiskData(rawData.disk),
-        alerts: rawData.alerts,
-        icmp: rawData.icmp,
-        topTriggers: rawData.alerts || []
-    };
-    res.json(processedData);
+    try {
+        const { groupIds, timeFrom, timeTill } = req.body;
+        const hosts = await zabbixService.getHostsInGroup(groupIds);
+        console.log(`Hosts localitzats: ${hosts.length}`);
+        const hostIds = hosts.map(h => h.hostid);
+        
+        const rawData = await zabbixService.getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill);
+        console.log('Dades consolidades obtingudes de Zabbix');
+        
+        const processedData = {
+            success: true,
+            hostGroupName: 'Desconegut', // Hauríem de buscar el nom del grup
+            timeRange: { from: timeFrom, till: timeTill },
+            servers: [], // S'ha de consolidar aquí
+            cpu: DataProcessor.processCpuData(rawData.cpu),
+            memory: DataProcessor.processMemoryData(rawData.memory),
+            disk: DataProcessor.processDiskData(rawData.disk),
+            alerts: rawData.alerts,
+            icmp: rawData.icmp,
+            topTriggers: rawData.alerts || []
+        };
+        
+        console.log('Resposta final preparada:', JSON.stringify(processedData, null, 2));
+        res.json(processedData);
+    } catch (err) {
+        console.error('Error en /api/report:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 app.listen(port, () => {

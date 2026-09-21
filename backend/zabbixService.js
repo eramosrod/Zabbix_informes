@@ -83,28 +83,36 @@ class ZabbixService {
     async getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill) {
         // Obtenir dades consolidades per a la taula de servidors
         // CPU, MEM, DISK, ICMP, ALERTS
-        const [cpu, memory, disk, icmp, alerts] = await Promise.all([
+        // Utilitzem Promise.allSettled per evitar que un error en una mètrica bloquegi tot el procés
+        const results = await Promise.allSettled([
             this.getMetricData(hostIds, 'system.cpu.util', timeFrom, timeTill),
-            this.getMetricData(hostIds, 'vm.memory.size[pused]', timeFrom, timeTill),
-            this.getMetricData(hostIds, 'vfs.fs.size[/,pused]', timeFrom, timeTill),
+            this.getMetricData(hostIds, 'vm.memory.size[pavailable]', timeFrom, timeTill), // Corregit a pavailable
+            this.getMetricData(hostIds, 'vfs.fs.size[*,pfree]', timeFrom, timeTill), // Corregit a pfree
             this.getIcmpLoss(hostIds, timeFrom, timeTill),
             this.getTopTriggers(hostIds, timeFrom, timeTill)
         ]);
+
+        const [cpu, memory, disk, icmp, alerts] = results.map(r => r.status === 'fulfilled' ? r.value : []);
 
         return { cpu, memory, disk, icmp, alerts };
     }
 
     async getMetricData(hostIds, key, timeFrom, timeTill) {
+        console.log(`Buscant ítems per a la clau: ${key} en hosts: ${hostIds.length}`);
         const items = await this.call('item.get', {
             hostids: hostIds,
             search: { key_: key },
             output: ['itemid', 'hostid']
         });
+        console.log(`Ítems trobats per ${key}: ${items.length}`);
 
         const itemIds = items.map(item => item.itemid);
-        if (itemIds.length === 0) return [];
+        if (itemIds.length === 0) {
+            console.warn(`No s'han trobat ítems per a la clau: ${key}`);
+            return [];
+        }
 
-        return await this.call('history.get', {
+        const history = await this.call('history.get', {
             itemids: itemIds,
             history: 0, // 0 per a float
             time_from: timeFrom,
@@ -113,6 +121,8 @@ class ZabbixService {
             sortfield: 'clock',
             sortorder: 'ASC'
         });
+        console.log(`Dades històriques obtingudes per ${key}: ${history.length}`);
+        return history;
     }
 
     async getTopTriggers(hostIds, timeFrom, timeTill) {
