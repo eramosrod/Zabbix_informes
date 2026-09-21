@@ -37,22 +37,15 @@ app.post('/api/report', async (req, res) => {
         const { groupIds, timeFrom, timeTill } = req.body;
         const hosts = await zabbixService.getHostsInGroup(groupIds);
         console.log(`Hosts localitzats: ${hosts.length}`);
-        const hostIds = hosts.map(h => h.hostid);
         
-        const rawData = await zabbixService.getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill);
+        const servers = await zabbixService.getHostsConsolidatedMetrics(hosts, timeFrom, timeTill);
         console.log('Dades consolidades obtingudes de Zabbix');
         
         const processedData = {
             success: true,
             hostGroupName: 'Desconegut', // Hauríem de buscar el nom del grup
             timeRange: { from: timeFrom, till: timeTill },
-            servers: [], // S'ha de consolidar aquí
-            cpu: DataProcessor.processCpuData(rawData.cpu),
-            memory: DataProcessor.processMemoryData(rawData.memory),
-            disk: DataProcessor.processDiskData(rawData.disk),
-            alerts: rawData.alerts,
-            icmp: rawData.icmp,
-            topTriggers: rawData.alerts || []
+            servers: servers
         };
         
         console.log('Resposta final preparada:', JSON.stringify(processedData, null, 2));

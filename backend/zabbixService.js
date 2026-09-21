@@ -75,26 +75,40 @@ class ZabbixService {
     async getHostsInGroup(groupIds) {
         const result = await this.call('host.get', {
             groupids: groupIds,
-            output: ['hostid', 'name']
+            output: ['hostid', 'name', 'host'],
+            filter: { status: 0 }
         });
+        console.log('Hosts encontrados:', result.length, result);
         return result;
     }
 
-    async getHostsConsolidatedMetrics(hostIds, timeFrom, timeTill) {
-        // Obtenir dades consolidades per a la taula de servidors
-        // CPU, MEM, DISK, ICMP, ALERTS
-        // Utilitzem Promise.allSettled per evitar que un error en una mètrica bloquegi tot el procés
-        const results = await Promise.allSettled([
+    async getHostsConsolidatedMetrics(hosts, timeFrom, timeTill) {
+        const hostIds = hosts.map(h => h.hostid);
+        
+        // Obtenir dades per a cada mètrica
+        const [cpu, memory, disk, icmp] = await Promise.all([
             this.getMetricData(hostIds, 'system.cpu.util', timeFrom, timeTill),
-            this.getMetricData(hostIds, 'vm.memory.size[pavailable]', timeFrom, timeTill), // Corregit a pavailable
-            this.getMetricData(hostIds, 'vfs.fs.size[*,pfree]', timeFrom, timeTill), // Corregit a pfree
-            this.getIcmpLoss(hostIds, timeFrom, timeTill),
-            this.getTopTriggers(hostIds, timeFrom, timeTill)
+            this.getMetricData(hostIds, 'vm.memory.size[pavailable]', timeFrom, timeTill),
+            this.getMetricData(hostIds, 'vfs.fs.size[*,pfree]', timeFrom, timeTill),
+            this.getIcmpLoss(hostIds, timeFrom, timeTill)
         ]);
 
-        const [cpu, memory, disk, icmp, alerts] = results.map(r => r.status === 'fulfilled' ? r.value : []);
+        // Normalitzar dades per host
+        return hosts.map(host => {
+            const hostCpu = cpu.find(c => c.hostid === host.hostid) || { value: null };
+            const hostMem = memory.find(m => m.hostid === host.hostid) || { value: null };
+            const hostDisk = disk.filter(d => d.hostid === host.hostid) || [];
+            const hostIcmp = icmp.find(i => i.hostid === host.hostid) || { value: null };
 
-        return { cpu, memory, disk, icmp, alerts };
+            return {
+                hostid: host.hostid,
+                name: host.name,
+                icmp: hostIcmp.value,
+                cpu: hostCpu.value,
+                memory: hostMem.value,
+                disk: hostDisk.map(d => ({ name: d.name, pfree: d.value }))
+            };
+        });
     }
 
     async getMetricData(hostIds, key, timeFrom, timeTill) {
@@ -102,7 +116,8 @@ class ZabbixService {
         const items = await this.call('item.get', {
             hostids: hostIds,
             search: { key_: key },
-            output: ['itemid', 'hostid']
+            searchWildcards: true,
+            output: ['itemid', 'hostid', 'lastvalue']
         });
         console.log(`Ítems trobats per ${key}: ${items.length}`);
 
@@ -112,7 +127,7 @@ class ZabbixService {
             return [];
         }
 
-        const history = await this.call('history.get', {
+        let history = await this.call('history.get', {
             itemids: itemIds,
             history: 0, // 0 per a float
             time_from: timeFrom,
@@ -121,7 +136,17 @@ class ZabbixService {
             sortfield: 'clock',
             sortorder: 'ASC'
         });
-        console.log(`Dades històriques obtingudes per ${key}: ${history.length}`);
+
+        if (history.length === 0) {
+            console.log(`No hi ha historial per ${key}, utilitzant lastvalue.`);
+            history = items.map(item => ({
+                itemid: item.itemid,
+                value: item.lastvalue,
+                clock: Math.floor(Date.now() / 1000)
+            }));
+        }
+        
+        console.log(`Dades obtingudes per ${key}: ${history.length}`);
         return history;
     }
 
