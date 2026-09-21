@@ -44,6 +44,7 @@ class ZabbixService {
         try {
             console.log(`Calling Zabbix API: ${method}`);
             const response = await axios.post(this.apiUrl, requestBody, { headers });
+            console.log(`API Response for ${method}:`, JSON.stringify(response.data, null, 2));
 
             if (response.data.error) {
                 // Si falla per autorització, provar fallback
@@ -85,51 +86,22 @@ class ZabbixService {
     async getHostsConsolidatedMetrics(hosts, timeFrom, timeTill) {
         const hostIds = hosts.map(h => h.hostid);
         
-        // Obtenir dades per a cada mètrica
-        const [cpu, memory, disk, icmp] = await Promise.all([
-            this.getMetricData(hostIds, 'system.cpu.util', timeFrom, timeTill),
-            this.getMetricData(hostIds, 'vm.memory.size[pavailable]', timeFrom, timeTill),
-            this.getMetricData(hostIds, 'vfs.fs.size[*,pfree]', timeFrom, timeTill),
-            this.getIcmpLoss(hostIds, timeFrom, timeTill)
-        ]);
-
-        // Normalitzar dades per host
-        return hosts.map(host => {
-            const hostCpu = cpu.find(c => c.hostid === host.hostid) || { value: null };
-            const hostMem = memory.find(m => m.hostid === host.hostid) || { value: null };
-            const hostDisk = disk.filter(d => d.hostid === host.hostid) || [];
-            const hostIcmp = icmp.find(i => i.hostid === host.hostid) || { value: null };
-
-            return {
-                hostid: host.hostid,
-                name: host.name,
-                icmp: hostIcmp.value,
-                cpu: hostCpu.value,
-                memory: hostMem.value,
-                disk: hostDisk.map(d => ({ name: d.name, pfree: d.value }))
-            };
-        });
-    }
-
-    async getMetricData(hostIds, key, timeFrom, timeTill) {
-        console.log(`Buscant ítems per a la clau: ${key} en hosts: ${hostIds.length}`);
-        const items = await this.call('item.get', {
+        // 1. Fetch all items for these hosts
+        const allItems = await this.call('item.get', {
             hostids: hostIds,
-            search: { key_: key },
-            searchWildcards: true,
-            output: ['itemid', 'hostid', 'lastvalue']
+            output: ['itemid', 'hostid', 'key_', 'lastvalue', 'units', 'value_type']
         });
-        console.log(`Ítems trobats per ${key}: ${items.length}`);
 
-        const itemIds = items.map(item => item.itemid);
-        if (itemIds.length === 0) {
-            console.warn(`No s'han trobat ítems per a la clau: ${key}`);
-            return [];
-        }
+        // 2. Filter items based on patterns
+        const icmpItems = allItems.filter(i => i.key_.includes('icmpping') || i.key_.includes('agent.ping'));
+        const cpuItems = allItems.filter(i => i.key_.includes('system.cpu.util') || i.key_.includes('cpu.util') || i.key_.includes('cpu.load'));
+        const memItems = allItems.filter(i => i.key_.includes('vm.memory.size[pavailable]') || i.key_.includes('memory.size[pavailable]') || i.key_.includes('memory.available'));
+        const diskItems = allItems.filter(i => i.key_.includes('vfs.fs.size') && i.key_.includes(',pfree]'));
 
-        let history = await this.call('history.get', {
-            itemids: itemIds,
-            history: 0, // 0 per a float
+        // 3. Fetch history for all items
+        const allItemIds = allItems.map(i => i.itemid);
+        const history = await this.call('history.get', {
+            itemids: allItemIds,
             time_from: timeFrom,
             time_till: timeTill,
             output: 'extend',
@@ -137,17 +109,39 @@ class ZabbixService {
             sortorder: 'ASC'
         });
 
-        if (history.length === 0) {
-            console.log(`No hi ha historial per ${key}, utilitzant lastvalue.`);
-            history = items.map(item => ({
-                itemid: item.itemid,
-                value: item.lastvalue,
-                clock: Math.floor(Date.now() / 1000)
+        // Helper to get latest value for a host and a set of items
+        const getLatestValue = (hostid, items) => {
+            const itemIds = items.filter(i => i.hostid === hostid).map(i => i.itemid);
+            const itemHistory = history.filter(h => itemIds.includes(h.itemid));
+            if (itemHistory.length === 0) {
+                // Fallback to lastvalue
+                const item = items.find(i => i.hostid === hostid);
+                return item ? item.lastvalue : null;
+            }
+            return itemHistory[itemHistory.length - 1].value;
+        };
+
+        // 4. Process and normalize
+        return hosts.map(host => {
+            const cpuVal = getLatestValue(host.hostid, cpuItems);
+            const memVal = getLatestValue(host.hostid, memItems);
+            const icmpVal = getLatestValue(host.hostid, icmpItems);
+            
+            const hostDiskItems = diskItems.filter(i => i.hostid === host.hostid);
+            const diskData = hostDiskItems.map(i => ({
+                name: i.key_.split(']')[0].split('[')[1].split(',')[0], // Extract disk name from key
+                pfree: parseFloat(getLatestValue(host.hostid, [i]))
             }));
-        }
-        
-        console.log(`Dades obtingudes per ${key}: ${history.length}`);
-        return history;
+
+            return {
+                hostid: host.hostid,
+                name: host.name,
+                icmp: icmpVal !== null ? (parseInt(icmpVal) === 1 ? 1 : 0) : null,
+                cpu: cpuVal !== null ? parseFloat(cpuVal) : null,
+                memory: memVal !== null ? parseFloat(memVal) : null,
+                disk: diskData
+            };
+        });
     }
 
     async getTopTriggers(hostIds, timeFrom, timeTill) {
@@ -161,32 +155,6 @@ class ZabbixService {
         
         // Processar i agrupar
         return Array.isArray(problems) ? problems : [];
-    }
-
-    async getIcmpLoss(hostIds, timeFrom, timeTill) {
-        // 1. Obtenir els itemids per a 'icmpping'
-        const items = await this.call('item.get', {
-            hostids: hostIds,
-            search: { key_: 'icmpping' },
-            output: ['itemid']
-        });
-
-        const itemIds = items.map(item => item.itemid);
-
-        if (itemIds.length === 0) {
-            return [];
-        }
-
-        // 2. Obtenir l'historial
-        return await this.call('history.get', {
-            itemids: itemIds,
-            history: 3, // 3 per a enter (icmpping)
-            time_from: timeFrom,
-            time_till: timeTill,
-            output: 'extend',
-            sortfield: 'clock',
-            sortorder: 'ASC'
-        });
     }
 }
 module.exports = ZabbixService;

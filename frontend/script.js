@@ -60,26 +60,30 @@ function renderDashboard(data) {
 }
 
 function getBadge(value, type) {
-    if (value === undefined || value === null || value === 'N/D') return '<span class="badge badge-gray">N/D</span>';
+    if (value === undefined || value === null) return '<span class="badge badge-gray">N/D</span>';
     
-    let colorClass = 'badge-gray';
     if (type === 'icmp') {
-        colorClass = value == 1 ? 'badge-green' : 'badge-red';
+        const colorClass = value == 1 ? 'badge-green' : 'badge-red';
         return `<span class="badge ${colorClass}">${value == 1 ? 'UP' : 'DOWN'}</span>`;
     }
     
     const numValue = parseFloat(value);
-    if (type === 'cpu' || type === 'disk') {
-        if (numValue < 80) colorClass = 'badge-green';
-        else if (numValue <= 90) colorClass = 'badge-yellow';
-        else colorClass = 'badge-red';
-    } else if (type === 'memory') {
-        if (numValue > 10) colorClass = 'badge-green';
-        else if (numValue > 5) colorClass = 'badge-yellow';
-        else colorClass = 'badge-red';
+    
+    if (type === 'cpu') {
+        let colorClass = 'badge-green';
+        if (numValue > 90) colorClass = 'badge-red';
+        else if (numValue >= 80) colorClass = 'badge-yellow';
+        return `<span class="badge ${colorClass}">${numValue.toFixed(1)}%</span>`;
     }
     
-    return `<span class="badge ${colorClass}">${value}%</span>`;
+    if (type === 'memory') {
+        let colorClass = 'badge-green';
+        if (numValue <= 5) colorClass = 'badge-red';
+        else if (numValue <= 10) colorClass = 'badge-yellow';
+        return `<span class="badge ${colorClass}">${numValue.toFixed(1)}%</span>`;
+    }
+    
+    return `<span class="badge badge-gray">${value}</span>`;
 }
 
 function renderServersTable(data) {
@@ -92,12 +96,20 @@ function renderServersTable(data) {
     }
 
     data.forEach(item => {
+        const diskHtml = Array.isArray(item.disk) ? item.disk.map(d => {
+            const occupancy = 100 - d.pfree;
+            let colorClass = 'badge-green';
+            if (occupancy > 90) colorClass = 'badge-red';
+            else if (occupancy >= 80) colorClass = 'badge-yellow';
+            return `<span class="badge ${colorClass}">${d.name}: ${occupancy.toFixed(1)}%</span>`;
+        }).join('<br>') : 'N/D';
+
         body.innerHTML += `<tr>
-            <td>${item.host || 'N/D'}</td>
+            <td>${item.name || 'N/D'}</td>
             <td>${getBadge(item.icmp, 'icmp')}</td>
             <td>${getBadge(item.cpu, 'cpu')}</td>
             <td>${getBadge(item.memory, 'memory')}</td>
-            <td>${getBadge(item.disk, 'disk')}</td>
+            <td>${diskHtml}</td>
         </tr>`;
     });
 }
