@@ -15,3 +15,4 @@ S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+)
 - [x] Solucionar runtime exception "Uncaught (in promise) TypeError: can't access property 'forEach', data is undefined" mitjançant programació defensiva al frontend i garantint arrays al backend.
 - [x] Refactorització del Dashboard: eliminació de KPIs, simplificació de taula de servidors, implementació d'alertes actives via API i optimització per a PDF.
 - [x] Afegir columna 'Alertes Actives' a la taula de servidors i refactoritzar la taula d'alertes a 7 columnes amb insígnies de severitat.
+- [x] Resoldre error MODULE_NOT_FOUND eliminant la importació obsoleta de `dataProcessor` a `index.js` i `app/index.js`.

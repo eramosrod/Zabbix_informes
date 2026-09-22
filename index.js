@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const ZabbixService = require('./backend/zabbixService');
-const DataProcessor = require('./backend/dataProcessor');
 const app = express();
 const port = 3000;
 
