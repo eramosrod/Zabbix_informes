@@ -73,75 +73,58 @@ class ZabbixService {
         return result.map(group => group.groupid);
     }
 
-    async getHostsInGroup(groupIds) {
-        const result = await this.call('host.get', {
-            groupids: groupIds,
-            output: ['hostid', 'name', 'host'],
-            filter: { status: 0 }
-        });
-        console.log('Hosts encontrados:', result.length, result);
-        return result;
+    async getHostsInGroup(selectedHostGroupId) {
+        const params = {
+            output: ['hostid', 'host', 'name'],
+            groupids: selectedHostGroupId,
+            filter: { status: '0' }   // solo hosts activados
+        };
+        const hosts = await this.call('host.get', params);
+        console.log('[DEBUG 1] Hosts obtenidos de Zabbix:', hosts);
+        if (hosts.length === 0) {
+            console.log('[DEBUG 1] ADVERTENCIA: No se obtuvieron hosts para el groupid', selectedHostGroupId);
+        }
+        return hosts;
     }
 
-    async getHostsConsolidatedMetrics(hosts, timeFrom, timeTill) {
+    async getHostsConsolidatedMetrics(hosts) {
         const hostIds = hosts.map(h => h.hostid);
-        
-        // 1. Fetch all items for these hosts
         const allItems = await this.call('item.get', {
             hostids: hostIds,
-            output: ['itemid', 'hostid', 'key_', 'lastvalue', 'units', 'value_type']
+            output: ['itemid', 'hostid', 'key_', 'lastvalue', 'name']
         });
 
-        // 2. Filter items based on patterns
-        const icmpItems = allItems.filter(i => i.key_.includes('icmpping') || i.key_.includes('agent.ping'));
-        const cpuItems = allItems.filter(i => i.key_.includes('system.cpu.util') || i.key_.includes('cpu.util') || i.key_.includes('cpu.load'));
-        const memItems = allItems.filter(i => i.key_.includes('vm.memory.size[pavailable]') || i.key_.includes('memory.size[pavailable]') || i.key_.includes('memory.available'));
-        const diskItems = allItems.filter(i => i.key_.includes('vfs.fs.size') && i.key_.includes(',pfree]'));
+        const hostMetrics = hosts.map(host => {
+            const hostItems = allItems.filter(i => i.hostid === host.hostid);
 
-        // 3. Fetch history for all items
-        const allItemIds = allItems.map(i => i.itemid);
-        const history = await this.call('history.get', {
-            itemids: allItemIds,
-            time_from: timeFrom,
-            time_till: timeTill,
-            output: 'extend',
-            sortfield: 'clock',
-            sortorder: 'ASC'
-        });
+            const icmpItem = hostItems.find(i => i.key_ === 'icmpping' || i.key_.includes('icmpping'));
+            const cpuItem = hostItems.find(i => i.key_ === 'system.cpu.util' || i.key_.includes('cpu.util'));
+            const memItem = hostItems.find(i => i.key_ === 'vm.memory.size[pavailable]' || i.key_.includes('pavailable'));
+            const diskItems = hostItems.filter(i => i.key_.includes('vfs.fs.size[') && i.key_.includes(',pfree]'));
 
-        // Helper to get latest value for a host and a set of items
-        const getLatestValue = (hostid, items) => {
-            const itemIds = items.filter(i => i.hostid === hostid).map(i => i.itemid);
-            const itemHistory = history.filter(h => itemIds.includes(h.itemid));
-            if (itemHistory.length === 0) {
-                // Fallback to lastvalue
-                const item = items.find(i => i.hostid === hostid);
-                return item ? item.lastvalue : null;
+            // Seleccionar el disco con el pfree más alto
+            let bestDisk = null;
+            if (diskItems.length > 0) {
+                bestDisk = diskItems.reduce((prev, current) => {
+                    return (parseFloat(current.lastvalue) > parseFloat(prev.lastvalue)) ? current : prev;
+                });
             }
-            return itemHistory[itemHistory.length - 1].value;
-        };
-
-        // 4. Process and normalize
-        return hosts.map(host => {
-            const cpuVal = getLatestValue(host.hostid, cpuItems);
-            const memVal = getLatestValue(host.hostid, memItems);
-            const icmpVal = getLatestValue(host.hostid, icmpItems);
-            
-            const hostDiskItems = diskItems.filter(i => i.hostid === host.hostid);
-            const diskData = hostDiskItems.map(i => ({
-                name: i.key_.split(']')[0].split('[')[1].split(',')[0], // Extract disk name from key
-                pfree: parseFloat(getLatestValue(host.hostid, [i]))
-            }));
 
             return {
                 hostid: host.hostid,
                 name: host.name,
-                icmp: icmpVal !== null ? (parseInt(icmpVal) === 1 ? 1 : 0) : null,
-                cpu: cpuVal !== null ? parseFloat(cpuVal) : null,
-                memory: memVal !== null ? parseFloat(memVal) : null,
-                disk: diskData
+                icmp: icmpItem ? parseInt(icmpItem.lastvalue) : null,
+                cpu: cpuItem ? parseFloat(cpuItem.lastvalue) : null,
+                memory: memItem ? parseFloat(memItem.lastvalue) : null,
+                disk: bestDisk ? {
+                    name: bestDisk.key_.split(']')[0].split('[')[1].split(',')[0],
+                    pfree: parseFloat(bestDisk.lastvalue)
+                } : null
             };
         });
+
+        console.log('[DEBUG 2] Ítems mapeados por host:', hostMetrics);
+        return hostMetrics;
     }
 
     async getTopTriggers(hostIds, timeFrom, timeTill) {

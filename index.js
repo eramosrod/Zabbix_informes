@@ -27,8 +27,8 @@ app.get('/api/hostgroups', async (req, res) => {
     res.json(groups);
 });
 
-app.post('/api/report', async (req, res) => {
-    console.log('--- Iniciant petició /api/report ---');
+app.post('/api/servers', async (req, res) => {
+    console.log('--- Iniciant petició /api/servers ---');
     console.log('Paràmetres rebuts:', JSON.stringify(req.body, null, 2));
     
     if (!zabbixService) return res.status(401).json({ error: 'No autenticat' });
@@ -38,30 +38,49 @@ app.post('/api/report', async (req, res) => {
         const hosts = await zabbixService.getHostsInGroup(groupIds);
         console.log(`Hosts localitzats: ${hosts.length}`);
         
-        const servers = await zabbixService.getHostsConsolidatedMetrics(hosts, timeFrom, timeTill);
+        const servers = await zabbixService.getHostsConsolidatedMetrics(hosts);
         console.log('Dades consolidades obtingudes de Zabbix');
         
-        // Enforce schema
-        const standardizedServers = servers.map(s => ({
-            name: s.name,
-            icmp: s.icmp,
-            cpu: s.cpu,
-            memory: s.memory,
-            disk: s.disk // Array of { name, pfree }
-        }));
-        
-        console.log('Respuesta enviada al frontend:', JSON.stringify(standardizedServers, null, 2));
-        
-        const processedData = {
+        // Construir la carga útil JSON final según el Paso 3
+        const responsePayload = {
             success: true,
-            hostGroupName: 'Desconegut', // Hauríem de buscar el nom del grup
-            timeRange: { from: timeFrom, till: timeTill },
-            servers: standardizedServers
+            servers: servers.map(server => ({
+                hostid: server.hostid,
+                name: server.name,
+                icmp: server.icmp !== undefined ? server.icmp : null,
+                cpu: server.cpu !== undefined ? server.cpu : null,
+                memory: server.memory !== undefined ? server.memory : null,
+                disk: server.disk !== undefined ? server.disk : {
+                    name: null,
+                    pfree: null
+                }
+            })),
+            topTriggers: [] // Por ahora vacío, se llenará después
         };
         
-        res.json(processedData);
+        console.log('[DEBUG 3] JSON final enviado al frontend:', JSON.stringify(responsePayload, null, 2));
+        
+        res.json(responsePayload);
     } catch (err) {
-        console.error('Error en /api/report:', err);
+        console.error('Error en /api/servers:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/top-triggers', async (req, res) => {
+    console.log('--- Iniciant petició /api/top-triggers ---');
+    console.log('Paràmetres rebuts:', JSON.stringify(req.body, null, 2));
+    
+    if (!zabbixService) return res.status(401).json({ error: 'No autenticat' });
+    
+    try {
+        const { hostIds, timeFrom, timeTill } = req.body;
+        const topTriggers = await zabbixService.getTopTriggers(hostIds, timeFrom, timeTill);
+        console.log('Top triggers obtinguts:', topTriggers);
+        
+        res.json({ success: true, topTriggers });
+    } catch (err) {
+        console.error('Error en /api/top-triggers:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

@@ -95,21 +95,66 @@ function renderServersTable(data) {
         return;
     }
 
-    data.forEach(item => {
-        const diskHtml = Array.isArray(item.disk) ? item.disk.map(d => {
-            const occupancy = 100 - d.pfree;
+    data.forEach(server => {
+        // Extraer las propiedades exactas definidas en el Paso 3
+        const hostName = server.name || 'N/D';
+        const icmpValue = server.icmp !== undefined ? server.icmp : null;
+        const cpuValue = server.cpu !== undefined ? server.cpu : null;
+        const memoryValue = server.memory !== undefined ? server.memory : null;
+        const diskInfo = server.disk !== undefined ? server.disk : { name: null, pfree: null };
+        
+        // Generar badge para ICMP
+        let icmpBadge = '';
+        if (icmpValue === 1) {
+            icmpBadge = '<span class="badge badge-green">UP</span>';
+        } else if (icmpValue === 0) {
+            icmpBadge = '<span class="badge badge-red">DOWN</span>';
+        } else {
+            icmpBadge = '<span class="badge badge-gray">N/D</span>';
+        }
+        
+        // Generar badge para CPU
+        let cpuBadge = '';
+        if (cpuValue !== null) {
+            const numValue = parseFloat(cpuValue);
+            let colorClass = 'badge-green';
+            if (numValue > 90) colorClass = 'badge-red';
+            else if (numValue >= 80) colorClass = 'badge-yellow';
+            cpuBadge = `<span class="badge ${colorClass}">${numValue.toFixed(1)}%</span>`;
+        } else {
+            cpuBadge = '<span class="badge badge-gray">N/D</span>';
+        }
+        
+        // Generar badge para Memoria
+        let memoryBadge = '';
+        if (memoryValue !== null) {
+            const numValue = parseFloat(memoryValue);
+            let colorClass = 'badge-green';
+            if (numValue < 5) colorClass = 'badge-red';
+            else if (numValue <= 10) colorClass = 'badge-yellow';
+            memoryBadge = `<span class="badge ${colorClass}">${numValue.toFixed(1)}%</span>`;
+        } else {
+            memoryBadge = '<span class="badge badge-gray">N/D</span>';
+        }
+        
+        // Generar badge para Disco
+        let diskBadge = '';
+        if (diskInfo.pfree !== null) {
+            const occupancy = 100 - diskInfo.pfree;
             let colorClass = 'badge-green';
             if (occupancy > 90) colorClass = 'badge-red';
             else if (occupancy >= 80) colorClass = 'badge-yellow';
-            return `<span class="badge ${colorClass}">${d.name}: ${occupancy.toFixed(1)}%</span>`;
-        }).join('<br>') : 'N/D';
+            diskBadge = `<span class="badge ${colorClass}">${diskInfo.name || 'N/D'}: ${occupancy.toFixed(1)}%</span>`;
+        } else {
+            diskBadge = '<span class="badge badge-gray">N/D</span>';
+        }
 
         body.innerHTML += `<tr>
-            <td>${item.name || 'N/D'}</td>
-            <td>${getBadge(item.icmp, 'icmp')}</td>
-            <td>${getBadge(item.cpu, 'cpu')}</td>
-            <td>${getBadge(item.memory, 'memory')}</td>
-            <td>${diskHtml}</td>
+            <td>${hostName}</td>
+            <td>${icmpBadge}</td>
+            <td>${cpuBadge}</td>
+            <td>${memoryBadge}</td>
+            <td>${diskBadge}</td>
         </tr>`;
     });
 }

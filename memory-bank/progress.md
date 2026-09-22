@@ -16,4 +16,5 @@
 - [x] Refactorització backend: Implementar `getHostsConsolidatedMetrics` i eliminar mètodes obsolets.
 - [x] Implementar lògica de llindars (thresholds) a `backend/dataProcessor.js`.
 - [x] Auditoría Full-Stack y Refactorización Senior: Depuración Integral de la Aplicación Zabbix Reports.
+- [x] Auditoría Estricta Punto a Punto: Recuperación de Hosts y Mapeo Completo Zabbix API.
 - [x] Resoldre defecte de recuperació de dades en la integració Zabbix (refactorització de `host.get`, `item.get` flexible i normalització de dades).
