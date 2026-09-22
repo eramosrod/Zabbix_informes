@@ -1,4 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Load logo on startup
+    const savedLogo = localStorage.getItem('customLogo');
+    if (savedLogo) {
+        const logoImg = document.getElementById('custom-logo');
+        logoImg.src = savedLogo;
+        logoImg.style.display = 'block';
+    }
+
+    // Handle logo upload
+    document.getElementById('logo-upload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const logoData = e.target.result;
+                localStorage.setItem('customLogo', logoData);
+                const logoImg = document.getElementById('custom-logo');
+                logoImg.src = logoData;
+                logoImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
     // Configurar manejadores de eventos para los elementos del DOM
     document.getElementById('login-btn').addEventListener('click', async () => {
         const apiUrl = document.getElementById('apiUrl').value;
@@ -81,16 +105,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    document.getElementById('export-pdf').addEventListener('click', () => {
-        const element = document.getElementById('dashboard');
-        const opt = {
-            margin: 1,
-            filename: 'informe-zabbix.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save();
+    document.getElementById('export-html').addEventListener('click', async () => {
+        const dashboard = document.getElementById('dashboard').cloneNode(true);
+        
+        // Remove buttons from the exported HTML
+        dashboard.querySelector('#export-html').remove();
+        
+        // Fetch CSS content
+        const cssResponse = await fetch('style.css');
+        const cssContent = await cssResponse.text();
+        
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="ca">
+            <head>
+                <meta charset="UTF-8">
+                <title>Informe Zabbix</title>
+                <style>${cssContent}</style>
+            </head>
+            <body>
+                ${dashboard.innerHTML}
+            </body>
+            </html>
+        `;
+        
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'informe-zabbix.html';
+        a.click();
+        URL.revokeObjectURL(url);
     });
 });
 

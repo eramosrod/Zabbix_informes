@@ -16,7 +16,8 @@ app.post('/api/login', async (req, res) => {
         await zabbixService.login(username, password);
         res.json({ success: true });
     } catch (error) {
-        res.status(401).json({ error: 'Autenticació fallida' });
+        console.error('Error en /api/login:', error);
+        res.status(401).json({ success: false, error: 'Autenticació fallida: ' + error.message });
     }
 });
 
@@ -62,7 +63,7 @@ app.post('/api/servers', async (req, res) => {
         res.json(responsePayload);
     } catch (err) {
         console.error('Error en /api/servers:', err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: 'Error intern del servidor: ' + err.message });
     }
 });
 
@@ -80,7 +81,7 @@ app.post('/api/top-triggers', async (req, res) => {
         res.json({ success: true, topTriggers });
     } catch (err) {
         console.error('Error en /api/top-triggers:', err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: 'Error intern del servidor: ' + err.message });
     }
 });
 
@@ -174,7 +175,7 @@ app.post('/api/dashboard', async (req, res) => {
         res.json(responsePayload);
     } catch (err) {
         console.error('Error en /api/dashboard:', err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: 'Error intern del servidor: ' + err.message });
     }
 });
 

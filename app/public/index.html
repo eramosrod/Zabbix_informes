@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Zabbix Executiu</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div id="login-form">
@@ -24,12 +23,15 @@
     </div>
     <div id="dashboard" style="display:none;">
         <header>
-            <div class="logo">Logo</div>
+            <div class="logo">
+                <img id="custom-logo" src="" alt="Logo" style="max-height: 50px; display: none;">
+                <input type="file" id="logo-upload" accept="image/*">
+            </div>
             <div id="header-info">
                 <h1>Informe Zabbix: <span id="host-group"></span></h1>
                 <p>Rango: <span id="report-date"></span></p>
             </div>
-            <button id="export-pdf">Exportar a PDF</button>
+            <button id="export-html">Exportar a HTML</button>
         </header>
         <main>
             <section id="tables" class="grid-container">

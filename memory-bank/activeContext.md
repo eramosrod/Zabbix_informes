@@ -3,6 +3,11 @@
 S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+) modificant el mètode `call` de `backend/zabbixService.js` per utilitzar la capçalera `Authorization: Bearer <token>` en lloc d'incloure el paràmetre `auth` en el cos JSON-RPC. S'ha implementat un mecanisme de fallback per mantenir la compatibilitat amb versions antigues de Zabbix.
 
 ## Tasques realitzades
+- Refactorització completa de l'aplicació d'informes Zabbix.
+- Fase 1: Compatibilitat Docker i gestió d'errors implementada.
+- Fase 2: Exportació a HTML autònom implementada.
+- Fase 3: Banner personalitzat persistent implementat.
+- Fase 4: Validació i actualització de la documentació completada.
 - [x] Configurar .roocodeignore i .roocoderules.
 - [x] Crear theme.config.js per a l'estil visual.
 - [x] Implementar backend (Node.js/Express) i frontend (Paso 1: Login).
