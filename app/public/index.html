@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Zabbix Executiu</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div id="login-form">
+        <input type="text" id="apiUrl" placeholder="URL API Zabbix">
+        <input type="text" id="username" placeholder="Usuari">
+        <input type="password" id="password" placeholder="Contrasenya">
+        <button id="login-btn">Login</button>
+        <div id="login-error" class="error-message" style="display:none;"></div>
+    </div>
+    <div id="filters" style="display:none;">
+        <select id="host-group-select"></select>
+        <input type="datetime-local" id="timeFrom">
+        <input type="datetime-local" id="timeTill">
+        <button id="generate-report">Generar Informe</button>
+        <div id="filter-error" class="error-message" style="display:none;"></div>
+    </div>
+    <div id="dashboard" style="display:none;">
+        <header>
+            <div class="logo">Logo</div>
+            <div id="header-info">
+                <h1>Informe Zabbix: <span id="host-group"></span></h1>
+                <p>Rango: <span id="report-date"></span></p>
+            </div>
+            <button id="export-pdf">Exportar a PDF</button>
+        </header>
+        <main>
+            <section id="tables" class="grid-container">
+                <div class="table-card full-width">
+                    <h2>Taula Consolidada de Servidors</h2>
+                    <table id="servers-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre HOST</th>
+                                <th>ICMP</th>
+                                <th>CPU</th>
+                                <th>MEMORIA</th>
+                                <th>Alertes Actives</th>
+                            </tr>
+                        </thead>
+                        <tbody id="servers-body"></tbody>
+                    </table>
+                </div>
+                <div class="table-card full-width">
+                    <h2>Alertes Actives</h2>
+                    <table id="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Recovery Time</th>
+                                <th>Status</th>
+                                <th>Host</th>
+                                <th>Severity</th>
+                                <th>Trigger/Problem</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alerts-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
