@@ -40,6 +40,80 @@ header {
     page-break-inside: avoid;
 }
 
+/* Metrics section cards - ensure consistent styling with table-card */
+.metrics-section .card-panel {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.metrics-section .card-panel h3 {
+    margin-top: 0;
+    color: #1f2c33;
+    font-size: 16px;
+}
+
+/* Dashboard row for metrics section */
+.dashboard-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* Card panel base styles */
+.card-panel {
+    flex: 1;
+    min-width: 320px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-panel h3 {
+    margin-top: 0;
+    color: #1f2c33;
+    font-size: 16px;
+}
+
+/* Chart container */
+.chart-container {
+    position: relative;
+    height: 280px;
+    width: 100%;
+}
+
+/* Table responsive wrapper */
+.table-responsive {
+    overflow-y: auto;
+    max-height: 280px;
+}
+
+.table-responsive table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.table-responsive th,
+.table-responsive td {
+    padding: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.table-responsive thead tr {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    position: sticky;
+    top: 0;
+}
+
+.table-responsive th {
+    color: #495057;
+}
+
 .full-width {
     grid-column: 1 / -1;
 }

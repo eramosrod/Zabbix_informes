@@ -1,23 +1,44 @@
 # Context actiu
 
-S'ha solucionat l'error d'autenticació amb la API de Zabbix (versions 6.4/7.0+) modificant el mètode `call` de `backend/zabbixService.js` per utilitzar la capçalera `Authorization: Bearer <token>` en lloc d'incloure el paràmetre `auth` en el cos JSON-RPC. S'ha implementat un mecanisme de fallback per mantenir la compatibilitat amb versions antigues de Zabbix.
-
 ## Tasques realitzades
-- Refactorització completa de l'aplicació d'informes Zabbix.
-- Fase 1: Compatibilitat Docker i gestió d'errors implementada.
-- Fase 2: Exportació a HTML autònom implementada.
-- Fase 3: Banner personalitzat persistent implementat.
-- Fase 4: Validació i actualització de la documentació completada.
-- [x] Configurar .roocodeignore i .roocoderules.
-- [x] Crear theme.config.js per a l'estil visual.
-- [x] Implementar backend (Node.js/Express) i frontend (Paso 1: Login).
-- [x] Implementar frontend (Paso 2: Filtres i consulta a Zabbix).
-- [x] Implementar lògica de dades (Paso 3: Obtenció de mètriques).
-- [x] Implementar dashboard i exportació a PDF (Paso 4).
-- [x] Solucionar error d'autenticació Zabbix API (fallback `user.login`).
-- [x] Auditar mètodes JSON-RPC i millorar logging d'errors.
-- [x] Corregir paràmetres en `history.get` (eliminar `search` i utilitzar `item.get` previ).
-- [x] Solucionar runtime exception "Uncaught (in promise) TypeError: can't access property 'forEach', data is undefined" mitjançant programació defensiva al frontend i garantint arrays al backend.
-- [x] Refactorització del Dashboard: eliminació de KPIs, simplificació de taula de servidors, implementació d'alertes actives via API i optimització per a PDF.
-- [x] Afegir columna 'Alertes Actives' a la taula de servidors i refactoritzar la taula d'alertes a 7 columnes amb insígnies de severitat.
-- [x] Resoldre error MODULE_NOT_FOUND eliminant la importació obsoleta de `dataProcessor` a `index.js` i `app/index.js`.
+
+- Implementació de la funció `renderHostsAlertsTable(problems)` a `app/public/script.js` per agrupar, comptar i ordenar les alertes de Zabbix per host.
+- Integració de `renderHostsAlertsTable` en el flux de renderització del dashboard i en el manejador del botó "Generate Report".
+- Refactorització de `app/public/script.js` per reemplaçar `renderSeverityRadar` per `renderSeverityBarChart` (gràfic de barres horitzontal amb Chart.js).
+- Actualització del gestor d'esdeveniments del botó "Generar Informe" per invocar `renderSeverityBarChart` i `renderHostsAlertsTable` seqüencialment.
+- Actualització de la lògica d'exportació a HTML per utilitzar `severityBarCanvas.toDataURL('image/png')`.
+- Verificació de la funcionalitat.
+- **Implementació de filtratge estricte de severitat (severity > 0) per excloure esdeveniments "Not classified" (severity 0):**
+  - **Backend (`app/backend/zabbixService.js`):** Filtratge al servidor a `getActiveProblems()` utilitzant ordre de prioritat: `event.severity` > `event.priority` > `event.trigger?.priority`. Els esdeveniments amb severitat 0 són descartats abans d'enviar la resposta al frontend.
+  - **Frontend (`app/public/script.js`):** Funció `filterClassifiedProblems()` per sanitejar les dades rebudes. S'aplica al handler `generate-report` i com a mesura de seguretat addicional a `renderDashboard()`.
+  - **Refactorització de funcions de renderització:** `renderAlertsTable()`, `renderSeverityBarChart()`, i `renderHostsAlertsTable()` depenen exclusivament del paràmetre d'entrada (dataset sanitejat), eliminant dependències de variables globals o estats no filtrats.
+  - **Resultat:** Eliminació completa de files "Not classified" (grises) de les taules de la UI.
+- **Correcció del format de temps i càlcul de durada a `renderAlertsTable`:**
+  - Actualització de `calculateDuration()` per gestionar correctament timestamps en mil·lisegons (conversió a segons si > 10000000000).
+  - Modificació de `renderAlertsTable()` per utilitzar `formatZabbixTime()` amb propietats `clock`/`r_clock` (fallback a `time`/`recovery_time`).
+  - Aplicació de `formattedTime`, `formattedRecovery` i `calculateDuration(clock, r_clock)` a les columnes de la taula.
+  - **Resultat:** La columna **Time** mostra ara la data correcta de 2026 en lloc de 1970.
+- **Correcció de l'error NaN a la columna Duration (`calculateDuration`):**
+  - Substitució completa de `calculateDuration()` per una versió a prova de fallos que valida nuls/undefined, gestiona timestamps en mil·lisegons i segons, i utilitza `Date.now()` com a fallback per alertes actives (sense `r_clock`).
+  - Actualització de la crida a `renderAlertsTable()` per passar explícitament els camps: `calculateDuration(alert.clock || alert.time, alert.r_clock || alert.r_time)`.
+  - **Resultat:** Les alertes actives (amb `-` a Recovery Time) mostren ara la durada calculada fins al moment present (p. ex. `4h 12m 05s`) en lloc de `NaNh NaNm NaNs`.
+- **Millora del càlcul de durada per distingir alertes resoltes vs actives:**
+  - Actualització de `calculateDuration(clockVal, rClockVal, statusVal)` per acceptar el tercer paràmetre `statusVal` i validar `r_clock` abans de recórrer a `Date.now()`.
+  - Lògica: Si `r_clock` és vàlid (resolt) → `endSec = r_clock`; si no (activa/PROBLEM) → `endSec = Date.now()`.
+  - Actualització de la crida a `renderAlertsTable()` per passar `alert.value || alert.status` com a tercer argument.
+  - **Resultat:** Les alertes resoltes mostren durada fixa (r_clock - clock) i no incrementen amb el temps; les actives continuen mostrant durada en temps real.
+- **Actualització de títols de capçalera (h2, h3) a la interfície d'usuari:**
+ - `app/public/index.html`: "Taula Consolidada de Servidors" → "Estat dels Servidors" (h2)
+ - `app/public/index.html`: "Alertes per Severitat" → "Recompte d'Alertes per Severitat" (h3)
+ - `app/public/index.html`: "Recumpte d'Alertes per Màquina" → "Recompte d'Alertes per Màquina" (h3)
+ - `app/public/script.js`: "Alertes per Severitat" → "Recompte d'Alertes per Severitat" (h3 a l'exportació HTML)
+ - `frontend/index.html`: "Taula Consolidada de Servidors" → "Estat dels Servidors" (h2)
+ - **Reinici del servei Docker** (`docker-compose up -d --build`) i verificació de càrrega correcta de la web amb els nous títols.
+- **Implementació de la taula "Resumen d'Alertes" (Agrupació per Host + Trigger + Severitat):**
+ - **Frontend (`app/public/index.html`):** Afegida nova taula amb estructura Bootstrap (`card`, `table-striped`, `table-hover`) dins del dashboard. Columnes: Host, Trigger / Alerta, Severitat, Nombre de problemas.
+ - **Frontend (`app/public/script.js`):** Afegides funcions `generateSummaryAlerts(problemsList)` i `renderSummaryAlertsTable(summaryArray)`.
+   - `generateSummaryAlerts`: Agrupa els problemes per clau única `${hostName}___${triggerName}`, compta ocurrències, ordena descendentment per recuente (b.count - a.count).
+   - `renderSummaryAlertsTable`: Renderitza les files a `#summaryAlertsBody` amb badges de severitat (Information, Warning, Average, High, Disaster) utilitzant `getSeverityBadge()`.
+ - **Integració:** Crida a `generateSummaryAlerts(sanitizedProblems)` dins de `renderDashboard()` després de les altres taules.
+ - **Filtratge temporal:** El backend (`zabbixService.getActiveProblems`) ja accepta i utilitza `time_from` i `time_till` a la crida `event.get` de l'API Zabbix, garantint que només es processin esdeveniments dins del rang seleccionat per l'usuari.
+ - **Reinici del servei** (`node app/index.js`) i verificació: la taula s'actualitza dinàmicament al canviar el rang de dates.

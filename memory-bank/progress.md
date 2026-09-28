@@ -8,3 +8,42 @@
 - [x] Configurar umbrales de indicadores de estado según especificaciones
 - [x] Ejecutar prueba de integración end-to-end local
 - [x] Sincronizar estado y actualizar documentación en memory-bank/
+- [x] Refactorizar `renderSeverityRadar` a `renderSeverityBarChart` y actualizar exportación a HTML
+- [x] Implementar filtratge estricte de severitat (severity > 0) per excloure "Not classified":
+  - [x] Backend: `zabbixService.getActiveProblems()` filtra per severitat calculada (event.severity > event.priority > event.trigger?.priority)
+  - [x] Frontend: Funció `filterClassifiedProblems()` per saniteig al client
+  - [x] Refactorització `renderAlertsTable`, `renderSeverityBarChart`, `renderHostsAlertsTable` per dependre exclusivament de paràmetres d'entrada saniteats
+  - [x] Eliminació de files "Not classified" (grises) de totes les taules UI
+  - [x] Actualització documentació memory-bank/ (activeContext.md, systemPatterns.md)
+- [x] Corregir format de temps i càlcul de durada a `renderAlertsTable`:
+  - [x] Actualitzar `calculateDuration()` per gestionar timestamps en mil·lisegons
+  - [x] Modificar `renderAlertsTable()` per usar `formatZabbixTime()` amb `clock`/`r_clock`
+  - [x] Aplicar `formattedTime`, `formattedRecovery` i `calculateDuration(clock, r_clock)` a columnes
+  - [x] Verificar que la columna **Time** mostra data 2026 correcta (no 1970)
+  - [x] Actualitzar documentació memory-bank/
+- [x] Implementar taula "Resumen d'Alertes" (Agrupació per Host + Trigger + Severitat):
+  - [x] Frontend (`app/public/index.html`): Afegir estructura de taula Bootstrap amb columnes Host, Trigger/Alerta, Severitat, Nombre de problemas
+  - [x] Frontend (`app/public/script.js`): Implementar `generateSummaryAlerts()` i `renderSummaryAlertsTable()` per agrupar, comptar i ordenar per recuente descendent
+  - [x] Integració: Crida a `generateSummaryAlerts()` a `renderDashboard()` amb dades saniteades
+  - [x] Backend: Verificat que `zabbixService.getActiveProblems()` utilitza `time_from` i `time_till` per filtratge temporal
+  - [x] Reinici del servei i verificació funcional: taula s'actualitza dinàmicament al canviar rang de dates
+  - [x] Actualitzar documentació memory-bank/
+- [x] Corregir error NaN a la columna Duration (`calculateDuration`):
+  - [x] Substituir `calculateDuration()` per versió a prova de fallos (validació nuls, gestió ms/s, fallback Date.now())
+  - [x] Actualitzar crida a `renderAlertsTable()` per passar camps explícits: `calculateDuration(alert.clock || alert.time, alert.r_clock || alert.r_time)`
+  - [x] Verificar que alertes actives mostren durada fins al present (p. ex. `4h 12m 05s`) en lloc de `NaNh NaNm NaNs`
+  - [x] Actualitzar documentació memory-bank/
+- [x] Actualitzar títols de capçalera (h2, h3) a la interfície d'usuari:
+ - [x] `app/public/index.html`: "Taula Consolidada de Servidors" → "Estat dels Servidors" (h2)
+ - [x] `app/public/index.html`: "Alertes per Severitat" → "Recompte d'Alertes per Severitat" (h3)
+ - [x] `app/public/index.html`: "Recumpte d'Alertes per Màquina" → "Recompte d'Alertes per Màquina" (h3)
+ - [x] `app/public/script.js`: "Alertes per Severitat" → "Recompte d'Alertes per Severitat" (h3 a l'exportació HTML)
+ - [x] `frontend/index.html`: "Taula Consolidada de Servidors" → "Estat dels Servidors" (h2)
+ - [x] Reinici del servei Docker (`docker-compose up -d --build`) i verificació de càrrega correcta
+ - [x] Actualitzar documentació memory-bank/
+- [x] Millora del càlcul de durada per distingir alertes resoltes vs actives:
+  - [x] Actualitzar `calculateDuration(clockVal, rClockVal, statusVal)` per acceptar tercer paràmetre i validar `r_clock` abans de `Date.now()`
+  - [x] Lògica: Resolt (r_clock vàlid) → `endSec = r_clock`; Activa (PROBLEM) → `endSec = Date.now()`
+  - [x] Actualitzar crida a `renderAlertsTable()` per passar `alert.value || alert.status`
+  - [x] Reinici del servei Docker (`docker-compose restart`) i verificació
+  - [x] Actualitzar documentació memory-bank/

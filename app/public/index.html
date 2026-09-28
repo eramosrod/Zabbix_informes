@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Zabbix Executiu</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="login-form">
@@ -35,8 +36,9 @@
         </header>
         <main>
             <section id="tables" class="grid-container">
+                <!-- 1º: Taula Consolidada de Servidors (Estat dels Servidors) -->
                 <div class="table-card full-width">
-                    <h2>Taula Consolidada de Servidors</h2>
+                    <h2>Estat dels Servidors</h2>
                     <table id="servers-table">
                         <thead>
                             <tr>
@@ -50,22 +52,77 @@
                         <tbody id="servers-body"></tbody>
                     </table>
                 </div>
+
+                <!-- 2º: Bloque de recuentos/métricas (Recompte d'Alertes per Severitat y Recompte d'Alertes per Màquina) -->
+                <div class="table-card full-width metrics-section">
+                    <div class="dashboard-row">
+                        <!-- Gràfic de Barres Horitzontals de Severitats -->
+                        <div class="card-panel">
+                            <h3>Recompte d'Alertes per Severitat</h3>
+                            <div class="chart-container">
+                                <canvas id="severityBarCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Taula de Recull d'Alertes per Host -->
+                        <div class="card-panel">
+                            <h3>Recompte d'Alertes per Màquina</h3>
+                            <div class="table-responsive">
+                                <table id="hostsAlertsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Màquina / Host</th>
+                                            <th style="text-align: right;">Total Alertes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hostsAlertsTbody">
+                                        <!-- Es poblarà dinàmicament des de script.js -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3º: Resumen d'Alertes (Agrupació per Host + Trigger + Severitat) -->
+                <div class="table-card full-width">
+                    <h2>Resumen d'Alertes</h2>
+                    <div class="table-responsive">
+                        <table id="tableSummaryAlerts">
+                            <thead>
+                                <tr>
+                                    <th>Host</th>
+                                    <th>Trigger / Alerta</th>
+                                    <th>Severitat</th>
+                                    <th class="text-center">Nombre de problemas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryAlertsBody">
+                                <!-- Filas dinámicas -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4º: Taula d'alertes actives (Alertes Actives) -->
                 <div class="table-card full-width">
                     <h2>Alertes Actives</h2>
-                    <table id="alerts-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Recovery Time</th>
-                                <th>Status</th>
-                                <th>Host</th>
-                                <th>Severity</th>
-                                <th>Trigger/Problem</th>
-                                <th>Duration</th>
-                            </tr>
-                        </thead>
-                        <tbody id="alerts-body"></tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table id="alerts-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Recovery Time</th>
+                                    <th>Status</th>
+                                    <th>Host</th>
+                                    <th>Severity</th>
+                                    <th>Trigger/Problem</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </main>

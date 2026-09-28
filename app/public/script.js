@@ -1,3 +1,43 @@
+let barChartInstance = null;
+
+/**
+ * Filters out events with severity 0 (Not classified)
+ * @param {Array} problems - Array of problem objects
+ * @returns {Array} Filtered array with only classified problems (severity > 0)
+ */
+function filterClassifiedProblems(problems) {
+    return (problems || []).filter(p => parseInt(p.severity, 10) > 0);
+}
+
+/**
+ * Formats a Zabbix timestamp (seconds or milliseconds) to YYYY-MM-DD HH:mm:ss
+ * @param {string|number} timestamp - Unix timestamp in seconds or milliseconds
+ * @returns {string} Formatted date string or '-' if invalid
+ */
+function formatZabbixTime(timestamp) {
+    if (!timestamp || timestamp === '-' || timestamp === '0') return '-';
+    
+    let ts = parseInt(timestamp, 10);
+    if (isNaN(ts) || ts <= 0) return '-';
+
+    // If timestamp is in seconds (10 digits instead of 13), convert to milliseconds
+    if (ts < 10000000000) {
+        ts = ts * 1000;
+    }
+
+    const date = new Date(ts);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Load logo on startup
     const savedLogo = localStorage.getItem('customLogo');
@@ -94,7 +134,27 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 const data = await response.json();
+                
+                // DEBUG INSTRUMENTATION - Frontend raw payload
+                console.log('[DEBUG FRONTEND RAW] Payload completo recibido del backend:', JSON.stringify(data, null, 2));
+                console.log('[DEBUG FRONTEND MAPPED] Muestra procesada (primeros 5):', data.activeProblems?.slice(0, 5).map(p => ({
+                    id: p.eventid || p.problemid,
+                    name: p.name,
+                    severityLabel: p.severity,
+                    severityValue: p.priority,
+                    triggerPriority: p.trigger?.priority,
+                    eventSeverity: p.eventSeverity,
+                    rawKeys: Object.keys(p)
+                })));
+
+                // Client-side sanitization: filter out "Not classified" (severity 0) events
+                const sanitizedProblems = filterClassifiedProblems(data?.activeProblems);
+                
+                // Update data object with sanitized problems for downstream rendering
+                data.activeProblems = sanitizedProblems;
+                
                 renderDashboard(data);
+                // renderHostsAlertsTable is now called within renderDashboard with sanitized data
             } else {
                 const errorData = await response.json();
                 showError(errorDiv, errorData.error || 'Error al generar el informe');
@@ -114,6 +174,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fetch CSS content
         const cssResponse = await fetch('style.css');
         const cssContent = await cssResponse.text();
+        
+        // Convert charts to Base64 images
+        const barChartCanvas = document.getElementById('severityBarCanvas');
+        
+        const barImg = barChartCanvas.toDataURL('image/png');
+        
+        // Add charts as images to the cloned dashboard
+        const chartsSection = dashboard.querySelector('.dashboard-row');
+        if (chartsSection) {
+            // Replace the canvas container with the image
+            const barChartContainer = chartsSection.querySelector('.card-panel');
+            if (barChartContainer) {
+                barChartContainer.innerHTML = `
+                    <h3 style="margin-top: 0; color: #1f2c33; font-size: 16px;">Recompte d'Alertes per Severitat</h3>
+                    <img src="${barImg}" alt="Severitat Bar Chart" style="width: 100%; height: auto;">
+                `;
+            }
+        }
         
         const htmlContent = `
             <!DOCTYPE html>
@@ -186,12 +264,66 @@ function renderDashboard(data) {
     }
     
     try {
-        const alertsData = data?.activeProblems || [];
-        renderAlertsTable(alertsData);
+        // Use sanitized data (already filtered by generate-report handler)
+        // Additional safety: apply filter again to ensure no severity 0 events slip through
+        const sanitizedProblems = filterClassifiedProblems(data?.activeProblems);
+        renderAlertsTable(sanitizedProblems);
+        renderSeverityBarChart(sanitizedProblems);
+        renderHostsAlertsTable(sanitizedProblems);
+        generateSummaryAlerts(sanitizedProblems);
     } catch (e) {
         console.error('Error rendering alerts table:', e);
         showError(document.getElementById('filter-error'), 'Error al renderizar tabla de alertas');
     }
+}
+
+function renderSeverityBarChart(problems) {
+    const canvas = document.getElementById('severityBarCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (barChartInstance) {
+        barChartInstance.destroy();
+    }
+
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    (problems || []).forEach(p => {
+        const sev = parseInt(p.severity, 10);
+        if (counts[sev] !== undefined) counts[sev]++;
+    });
+
+    barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Information', 'Warning', 'Average', 'High', 'Disaster'],
+            datasets: [{
+                label: 'Nombre d\'Alertes',
+                data: [counts[1], counts[2], counts[3], counts[4], counts[5]],
+                backgroundColor: [
+                    '#7499FF', // Information
+                    '#FFF000', // Warning
+                    '#FFAA44', // Average
+                    '#FF8888', // High
+                    '#FF4646'  // Disaster
+                ],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
 }
 
 function getSeverityBadge(severity) {
@@ -237,54 +369,154 @@ function renderServersTable(data) {
     });
 }
 
-function calculateDuration(clock, r_clock) {
-    const start = parseInt(clock) * 1000;
-    const end = r_clock ? parseInt(r_clock) * 1000 : Date.now();
-    const diff = end - start;
-    
-    const seconds = Math.floor((diff / 1000) % 60);
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    const hours = Math.floor((diff / (1000 * 60 * 60)));
-    
-    return `${hours}h ${minutes}m ${seconds}s`;
+function calculateDuration(clockVal, rClockVal, statusVal) {
+  // 1. Obtener timestamp de inicio en segundos
+  let startSec = parseInt(clockVal, 10);
+  if (isNaN(startSec) || startSec <= 0) {
+    return '-';
+  }
+  if (startSec > 10000000000) {
+    startSec = Math.floor(startSec / 1000); // Normalizar ms a s
+  }
+
+  // 2. Determinar la hora final (Resolución vs Hora Actual)
+  let endSec;
+  const parsedR = parseInt(rClockVal, 10);
+  const hasValidRecovery = !isNaN(parsedR) && parsedR > 0 && rClockVal !== '-' && rClockVal !== '0';
+
+  if (hasValidRecovery) {
+    // Si la alerta está resuelta / tiene r_clock
+    endSec = parsedR > 10000000000 ? Math.floor(parsedR / 1000) : parsedR;
+  } else {
+    // Si sigue activa (PROBLEM), usar la hora actual
+    endSec = Math.floor(Date.now() / 1000);
+  }
+
+  // 3. Calcular diferencia en segundos
+  const diffSec = Math.max(0, endSec - startSec);
+
+  const hours = Math.floor(diffSec / 3600);
+  const minutes = Math.floor((diffSec % 3600) / 60);
+  const seconds = diffSec % 60;
+
+  return `${hours}h ${minutes}m ${seconds}s`;
 }
 
-function formatDate(timestamp) {
-    if (!timestamp) return '-';
-    const date = new Date(parseInt(timestamp) * 1000);
-    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-}
-
-function renderAlertsTable(data) {
-    console.log('[DEBUG] renderAlertsTable received data:', data);
-    if (!data) {
+function renderAlertsTable(problems) {
+    console.log('[DEBUG] renderAlertsTable received data:', problems);
+    if (!problems) {
         console.error('[DEBUG] Data is null or undefined!');
-    } else if (data.length === 0) {
+    } else if (problems.length === 0) {
         console.log('[DEBUG] Data is empty array.');
     } else {
-        console.log('[DEBUG] First alert sample:', data[0]);
+        console.log('[DEBUG] First alert sample:', problems[0]);
         // Verify property access
-        console.log('[DEBUG] Alert property check: clock exists?', 'clock' in data[0], 'time exists?', 'time' in data[0]);
+        console.log('[DEBUG] Alert property check: clock exists?', 'clock' in problems[0], 'time exists?', 'time' in problems[0]);
     }
     const body = document.getElementById('alerts-body');
     body.innerHTML = '';
     
-    if (!Array.isArray(data) || data.length === 0) {
-        body.innerHTML = '<tr><td colspan="7" class="text-center">No data found</td></tr>';
+    if (!Array.isArray(problems) || problems.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" style="padding: 12px; text-align: center; color: #6c757d;">No se encontraron problemas clasificados en el rango seleccionado.</td></tr>';
         return;
     }
     
-    data.forEach(alert => {
+    // Rely solely on input parameter - data is already sanitized by caller
+    problems.forEach(alert => {
         const statusClass = alert.status === 'RESOLVED' ? 'status-resolved' : 'status-problem';
         
+        const formattedTime = formatZabbixTime(alert.clock || alert.time);
+        const formattedRecovery = formatZabbixTime(alert.r_clock || alert.recovery_time);
+        const duration = calculateDuration(alert.clock || alert.time, alert.r_clock || alert.recovery_time, alert.value || alert.status);
+        
         body.innerHTML += `<tr>
-            <td>${formatDate(alert.time)}</td>
-            <td>${formatDate(alert.recovery_time)}</td>
+            <td>${formattedTime}</td>
+            <td>${formattedRecovery}</td>
             <td><span class="status-badge ${statusClass}">${alert.status}</span></td>
             <td>${alert.host}</td>
             <td>${getSeverityBadge(alert.severity)}</td>
             <td>${alert.problem}</td>
-            <td>${calculateDuration(alert.time, alert.recovery_time)}</td>
+            <td>${duration}</td>
+        </tr>`;
+    });
+}
+
+function renderHostsAlertsTable(problems) {
+    const body = document.getElementById('hostsAlertsTbody');
+    body.innerHTML = '';
+    
+    // Rely solely on input parameter - data is already sanitized by caller
+    const sanitizedProblems = problems || [];
+
+    if (!Array.isArray(sanitizedProblems) || sanitizedProblems.length === 0) {
+        body.innerHTML = '<tr><td colspan="2" class="text-center">No alerts in the selected range.</td></tr>';
+        return;
+    }
+    
+    // Group by host and count occurrences
+    const hostCounts = {};
+    sanitizedProblems.forEach(p => {
+        const host = p.host || (p.hosts && p.hosts[0] && p.hosts[0].name) || 'Unknown';
+        hostCounts[host] = (hostCounts[host] || 0) + 1;
+    });
+    
+    // Convert to array and sort by count descending
+    const sortedHosts = Object.entries(hostCounts)
+        .map(([host, count]) => ({ host, count }))
+        .sort((a, b) => b.count - a.count);
+    
+    // Render the table
+    sortedHosts.forEach(({ host, count }) => {
+        body.innerHTML += `<tr>
+            <td>${host}</td>
+            <td style="text-align: right;">${count}</td>
+        </tr>`;
+    });
+}
+
+function generateSummaryAlerts(problemsList) {
+    const summaryMap = {};
+    
+    problemsList.forEach(p => {
+        const hostName = p.host || (p.hosts && p.hosts[0] ? p.hosts[0].name : 'Desconocido');
+        const triggerName = p.name || p.problem || p.description || 'Alerta';
+        const severity = p.severity || 0;
+        const key = `${hostName}___${triggerName}`;
+        
+        if (!summaryMap[key]) {
+            summaryMap[key] = {
+                host: hostName,
+                trigger: triggerName,
+                severity: severity,
+                count: 0
+            };
+        }
+        summaryMap[key].count += 1;
+    });
+    
+    // Convertir a array y ordenar descendentemente por recuento
+    const summaryArray = Object.values(summaryMap);
+    summaryArray.sort((a, b) => b.count - a.count);
+    
+    renderSummaryAlertsTable(summaryArray);
+}
+
+function renderSummaryAlertsTable(summaryArray) {
+    const body = document.getElementById('summaryAlertsBody');
+    body.innerHTML = '';
+    
+    if (!Array.isArray(summaryArray) || summaryArray.length === 0) {
+        body.innerHTML = '<tr><td colspan="4" class="text-center">No se encontraron alertas en el rango seleccionado.</td></tr>';
+        return;
+    }
+    
+    summaryArray.forEach(item => {
+        const severityBadge = getSeverityBadge(item.severity);
+        body.innerHTML += `<tr>
+            <td>${item.host}</td>
+            <td>${item.trigger}</td>
+            <td>${severityBadge}</td>
+            <td class="text-center">${item.count}</td>
         </tr>`;
     });
 }
