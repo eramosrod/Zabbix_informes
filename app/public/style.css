@@ -86,8 +86,17 @@ header {
 
 /* Table responsive wrapper */
 .table-responsive {
-    overflow-y: auto;
-    max-height: 280px;
+    overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
+}
+
+/* Desactivar scroll vertical interno en contenedores de tablas */
+.table-responsive,
+.card-body,
+.table-container {
+  max-height: none !important;
+  overflow-y: visible !important;
 }
 
 .table-responsive table {

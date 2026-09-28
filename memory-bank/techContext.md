@@ -17,3 +17,24 @@
   - **Filtratge temporal**: Hereta paràmetres `time_from` / `time_till` de `event.get` API Zabbix via backend.
   - **Severitat**: Reutilitza `getSeverityBadge()` per badges amb colors oficials Zabbix (1=Information, 2=Warning, 3=Average, 4=High, 5=Disaster).
   - **Funcions separades**: Processament (`generateSummaryAlerts`) i renderització (`renderSummaryAlertsTable`) desacoblades.
+- **Expansió vertical completa de taules (Eliminació de scroll vertical intern)**:
+  - **Fitxer modificat**: `app/public/style.css`
+  - **Canvis**:
+    - Eliminat `max-height: 280px` i `overflow-y: auto` de `.table-responsive` (línies 88-91 originals).
+    - Afegides regles per desactivar scroll vertical intern:
+      ```css
+      .table-responsive {
+          overflow-x: auto;
+          overflow-y: visible;
+          max-height: none;
+      }
+      .table-responsive,
+      .card-body,
+      .table-container {
+        max-height: none !important;
+        overflow-y: visible !important;
+      }
+      ```
+    - Mantenit `overflow-x: auto` per scroll horitzontal en pantalles estretes.
+  - **Verificació HTML**: `app/public/index.html` no conté estils inline que restringeixin l'alçada de les taules.
+  - **Resultat**: Les taules (Estat dels Servidors, Resumen d'Alertes, Alertes Actives, Recompte d'Alertes per Màquina) s'expandeixen verticalment completament segons el nombre de registres, sense cap barra de scroll vertical intern.

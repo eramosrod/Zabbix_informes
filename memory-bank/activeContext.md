@@ -35,10 +35,23 @@
  - `frontend/index.html`: "Taula Consolidada de Servidors" → "Estat dels Servidors" (h2)
  - **Reinici del servei Docker** (`docker-compose up -d --build`) i verificació de càrrega correcta de la web amb els nous títols.
 - **Implementació de la taula "Resumen d'Alertes" (Agrupació per Host + Trigger + Severitat):**
- - **Frontend (`app/public/index.html`):** Afegida nova taula amb estructura Bootstrap (`card`, `table-striped`, `table-hover`) dins del dashboard. Columnes: Host, Trigger / Alerta, Severitat, Nombre de problemas.
- - **Frontend (`app/public/script.js`):** Afegides funcions `generateSummaryAlerts(problemsList)` i `renderSummaryAlertsTable(summaryArray)`.
-   - `generateSummaryAlerts`: Agrupa els problemes per clau única `${hostName}___${triggerName}`, compta ocurrències, ordena descendentment per recuente (b.count - a.count).
-   - `renderSummaryAlertsTable`: Renderitza les files a `#summaryAlertsBody` amb badges de severitat (Information, Warning, Average, High, Disaster) utilitzant `getSeverityBadge()`.
- - **Integració:** Crida a `generateSummaryAlerts(sanitizedProblems)` dins de `renderDashboard()` després de les altres taules.
- - **Filtratge temporal:** El backend (`zabbixService.getActiveProblems`) ja accepta i utilitza `time_from` i `time_till` a la crida `event.get` de l'API Zabbix, garantint que només es processin esdeveniments dins del rang seleccionat per l'usuari.
- - **Reinici del servei** (`node app/index.js`) i verificació: la taula s'actualitza dinàmicament al canviar el rang de dates.
+  - **Frontend (`app/public/index.html`):** Afegida nova taula amb estructura Bootstrap (`card`, `table-striped`, `table-hover`) dins del dashboard. Columnes: Host, Trigger / Alerta, Severitat, Nombre de problemas.
+  - **Frontend (`app/public/script.js`):** Afegides funcions `generateSummaryAlerts(problemsList)` i `renderSummaryAlertsTable(summaryArray)`.
+    - `generateSummaryAlerts`: Agrupa els problemes per clau única `${hostName}___${triggerName}`, compta ocurrències, ordena descendentment per recuente (b.count - a.count).
+    - `renderSummaryAlertsTable`: Renderitza les files a `#summaryAlertsBody` amb badges de severitat (Information, Warning, Average, High, Disaster) utilitzant `getSeverityBadge()`.
+  - **Integració:** Crida a `generateSummaryAlerts(sanitizedProblems)` dins de `renderDashboard()` després de les altres taules.
+  - **Filtratge temporal:** El backend (`zabbixService.getActiveProblems`) ja accepta i utilitza `time_from` i `time_till` a la crida `event.get` de l'API Zabbix, garantint que només es processin esdeveniments dins del rang seleccionat per l'usuari.
+  - **Reinici del servei** (`node app/index.js`) i verificació: la taula s'actualitza dinàmicament al canviar el rang de dates.
+- **Reordenació de taules al DOM i igualació d'estructura Bootstrap (Layout/Responsive):**
+  - **Frontend (`app/public/index.html`):** Reordenades les taules perque l'ordre visual de dalt a baix sigui: 1) Estat dels Servidors, 2) Bloque de recuentos (Recompte d'Alertes per Severitat i Recompte d'Alertes per Màquina), 3) Resumen d'Alertes, 4) Alertes Actives.
+  - **Frontend (`app/public/index.html`):** La taula "Resumen d'Alertes" ara utilitza l'estructura `table-card full-width` + `table-responsive` idèntica a les altres taules principals (Estat dels Servidors, Alertes Actives), assegurant amplada total de pantalla i marges homogènies.
+  - **Frontend (`app/public/index.html`):** La taula "Alertes Actives" actualitzada per incloure el wrapper `table-responsive` per consistència.
+  - **Reinici del servei Docker** (`docker restart zabbix_informes-web-1`) i verificació de càrrega correcta.
+- **Eliminació de scroll vertical intern a les taules (Expansió vertical completa):**
+  - **Frontend (`app/public/style.css`):** Eliminat `max-height: 280px` i `overflow-y: auto` de la classe `.table-responsive`.
+  - **Frontend (`app/public/style.css`):** Afegides noves regles CSS per desactivar scroll vertical intern:
+    - `.table-responsive { overflow-x: auto; overflow-y: visible; max-height: none; }`
+    - `.table-responsive, .card-body, .table-container { max-height: none !important; overflow-y: visible !important; }`
+  - **Verificació HTML (`app/public/index.html`):** Confirmat que no hi ha estils inline (`style="max-height: ...; overflow-y: scroll;"`) que restringeixin l'alçada de les taules.
+  - **Resultat:** Les taules (Estat dels Servidors, Resumen d'Alertes, Alertes Actives, Recompte d'Alertes per Màquina) s'expandeixen verticalment completament segons el nombre de registres (ex. 40+ línies), sense cap barra de scroll vertical intern. Mantenint scroll horitzontal (`overflow-x: auto`) per pantalles estretes.
+  - **Reinici del servei** i verificació funcional.

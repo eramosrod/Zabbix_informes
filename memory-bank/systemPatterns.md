@@ -19,3 +19,15 @@ L'aplicació seguirà una arquitectura client-servidor:
   - **Filtratge temporal integrat**: Hereta el filtratge per `time_from` / `time_till` del backend (`event.get` API Zabbix), garantint consistència amb la resta del dashboard.
   - **Renderització amb badges de severitat**: Reutilitza `getSeverityBadge()` per mostrar severitats amb colors oficials Zabbix (Information, Warning, Average, High, Disaster).
   - **Funcions pures i reutilitzables**: `generateSummaryAlerts()` (processament) i `renderSummaryAlertsTable()` (renderització) separades per responsabilitats.
+- **Ordre i estructura de taules al Dashboard (Layout/Responsive)**:
+  - **Ordre visual definit**: 1) Estat dels Servidors, 2) Bloque de recuentos (Recompte d'Alertes per Severitat + Recompte d'Alertes per Màquina), 3) Resumen d'Alertes, 4) Alertes Actives.
+  - **Estructura unificada `table-card full-width`**: Totes les taules principals (Estat dels Servidors, Resumen d'Alertes, Alertes Actives) comparteixen la mateixa estructura: contenidor `table-card full-width` amb `h2` de títol i wrapper `table-responsive` per a la taula, garantint amplada total de pantalla, marges homogènies i scroll horitzontal consistent.
+  - **Consistència visual**: Eliminades estructures Bootstrap heterogènies (`card`, `card-header`, `card-body`, `table-striped`, `table-hover`) a favor de l'estructura CSS pròpia del projecte (`.table-card`, `.table-responsive`, `.full-width`).
+- **Expansió vertical completa de taules (Eliminació de scroll vertical intern)**:
+  - **Objectiu**: Permetre que les taules (Estat dels Servidors, Resumen d'Alertes, Alertes Actives, Recompte d'Alertes per Màquina) es mostrin completament sense barra de scroll vertical intern, independentment del nombre de registres (ex. 40+ línies).
+  - **Canvis CSS (`app/public/style.css`)**:
+    - Eliminat `max-height: 280px` i `overflow-y: auto` de la classe `.table-responsive`.
+    - Afegides regles per desactivar scroll vertical: `max-height: none !important`, `overflow-y: visible !important` per `.table-responsive`, `.card-body`, `.table-container`.
+    - Mantenit `overflow-x: auto` per permetre scroll horitzontal en pantalles estretes si cal.
+  - **Verificació HTML**: Confirmat que no hi ha estils inline (`style="max-height: ...; overflow-y: scroll;"`) que restringeixin l'alçada de les taules a `app/public/index.html`.
+  - **Resultat**: Les taules ara s'expandeixen verticalment de forma dinàmica segons el contingut, mostrant totes les files de forma contínua.

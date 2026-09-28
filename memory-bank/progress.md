@@ -47,3 +47,16 @@
   - [x] Actualitzar crida a `renderAlertsTable()` per passar `alert.value || alert.status`
   - [x] Reinici del servei Docker (`docker-compose restart`) i verificació
   - [x] Actualitzar documentació memory-bank/
+- [x] Reordenació de taules al DOM i igualació d'estructura Bootstrap (Layout/Responsive):
+  - [x] Reordenar taules a `app/public/index.html`: 1) Estat dels Servidors, 2) Bloque de recuentos, 3) Resumen d'Alertes, 4) Alertes Actives
+  - [x] Igualar estructura Bootstrap de "Resumen d'Alertes" amb `table-card full-width` + `table-responsive`
+  - [x] Afegir `table-responsive` a "Alertes Actives" per consistència
+  - [x] Reinici del servei Docker (`docker restart zabbix_informes-web-1`) i verificació visual
+  - [x] Actualitzar documentació memory-bank/
+- [x] Eliminar scroll vertical intern a les taules (expansió vertical completa):
+  - [x] Modificar `app/public/style.css`: Eliminar `max-height: 280px` i `overflow-y: auto` de `.table-responsive`
+  - [x] Afegir noves regles CSS per desactivar scroll vertical: `max-height: none !important`, `overflow-y: visible !important` per `.table-responsive`, `.card-body`, `.table-container`
+  - [x] Mantenir `overflow-x: auto` per scroll horitzontal en pantalles estretes
+  - [x] Verificar HTML: no hi ha estils inline que restringeixin l'alçada de les taules
+  - [x] Reinici del servei i verificació: les taules (Estat dels Servidors, Resumen d'Alertes, Alertes Actives, etc.) s'expandeixen verticalment completament segons el nombre de registres
+  - [x] Actualitzar documentació memory-bank/
