@@ -1,4 +1,144 @@
 let barChartInstance = null;
+let currentSelectedGroup = 'all';
+
+/**
+ * Formats a Date object to YYYY-MM-DDTHH:mm format for datetime-local input
+ * @param {Date} date - Date object
+ * @returns {string} Formatted date string
+ */
+function formatDatetimeInput(date) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+/**
+ * Sets the time range based on preset type
+ * @param {string} rangeType - '1d', '7d', '1w', '1m'
+ */
+function setTimeRange(rangeType) {
+    const now = new Date();
+    let fromDate = new Date();
+
+    switch (rangeType) {
+        case '1d':
+            fromDate.setDate(now.getDate() - 1);
+            break;
+        case '7d':
+        case '1w':
+            fromDate.setDate(now.getDate() - 7);
+            break;
+        case '1m':
+            fromDate.setMonth(now.getMonth() - 1);
+            break;
+        default:
+            fromDate.setDate(now.getDate() - 1);
+    }
+
+    // Format and assign to datetime inputs
+    document.getElementById('timeFrom').value = formatDatetimeInput(fromDate);
+    document.getElementById('timeTill').value = formatDatetimeInput(now);
+
+    // Trigger data reload
+    fetchDashboardData();
+}
+
+/**
+ * Renders group filter buttons dynamically
+ * @param {Array} groups - Array of group objects from Zabbix API
+ */
+function renderGroupButtons(groups) {
+    const container = document.getElementById('groupFilterButtons');
+    container.innerHTML = '<button type="button" class="btn btn-primary btn-sm my-1 mr-1 active" data-group-id="all">Tots els grups</button>';
+
+    groups.forEach(g => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-outline-primary btn-sm my-1 mr-1';
+        btn.setAttribute('data-group-id', g.groupid);
+        btn.textContent = g.name;
+        container.appendChild(btn);
+    });
+}
+
+/**
+ * Fetches dashboard data based on current filters
+ */
+async function fetchDashboardData() {
+    const groupSelect = document.getElementById('host-group-select');
+    const timeFrom = document.getElementById('timeFrom').value;
+    const timeTill = document.getElementById('timeTill').value;
+    const errorDiv = document.getElementById('filter-error');
+    
+    // Clear previous errors
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    
+    // Validate required fields
+    if (!timeFrom || !timeTill) {
+        showError(errorDiv, 'Por favor, seleccione el rango de tiempo');
+        return;
+    }
+    
+    // Determine group IDs based on selection
+    let groupIds;
+    if (currentSelectedGroup === 'all') {
+        // Get all group IDs from the select
+        groupIds = Array.from(groupSelect.options).map(opt => opt.value).filter(v => v);
+    } else {
+        groupIds = [currentSelectedGroup];
+    }
+    
+    if (groupIds.length === 0) {
+        showError(errorDiv, 'No hay grupos de hosts disponibles');
+        return;
+    }
+    
+    const timeFromMs = new Date(timeFrom).getTime() / 1000;
+    const timeTillMs = new Date(timeTill).getTime() / 1000;
+    
+    try {
+        const response = await fetch('/api/dashboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupIds, timeFrom: timeFromMs, timeTill: timeTillMs })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // DEBUG INSTRUMENTATION - Frontend raw payload
+            console.log('[DEBUG FRONTEND RAW] Payload completo recibido del backend:', JSON.stringify(data, null, 2));
+            console.log('[DEBUG FRONTEND MAPPED] Muestra procesada (primeros 5):', data.activeProblems?.slice(0, 5).map(p => ({
+                id: p.eventid || p.problemid,
+                name: p.name,
+                severityLabel: p.severity,
+                severityValue: p.priority,
+                triggerPriority: p.trigger?.priority,
+                eventSeverity: p.eventSeverity,
+                rawKeys: Object.keys(p)
+            })));
+
+            // Client-side sanitization: filter out "Not classified" (severity 0) events
+            const sanitizedProblems = filterClassifiedProblems(data?.activeProblems);
+            
+            // Update data object with sanitized problems for downstream rendering
+            data.activeProblems = sanitizedProblems;
+            
+            renderDashboard(data);
+        } else {
+            const errorData = await response.json();
+            showError(errorDiv, errorData.error || 'Error al generar el informe');
+        }
+    } catch (error) {
+        showError(errorDiv, 'Error de conexión al generar el informe');
+        console.error('Error al generar informe:', error);
+    }
+}
 
 /**
  * Filters out events with severity 0 (Not classified)
@@ -101,68 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    document.getElementById('generate-report').addEventListener('click', async () => {
-        const groupSelect = document.getElementById('host-group-select');
-        const timeFrom = document.getElementById('timeFrom').value;
-        const timeTill = document.getElementById('timeTill').value;
-        const errorDiv = document.getElementById('filter-error');
-        
-        // Limpiar errores previos
-        errorDiv.style.display = 'none';
-        errorDiv.textContent = '';
-        
-        // Validar campos requeridos
-        if (!groupSelect.value) {
-            showError(errorDiv, 'Por favor, seleccione un grupo de hosts');
-            return;
-        }
-        if (!timeFrom || !timeTill) {
-            showError(errorDiv, 'Por favor, seleccione el rango de tiempo');
-            return;
-        }
-        
-        try {
-            const groupIds = [groupSelect.value];
-            const timeFromMs = new Date(timeFrom).getTime() / 1000;
-            const timeTillMs = new Date(timeTill).getTime() / 1000;
-            
-            const response = await fetch('/api/dashboard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ groupIds, timeFrom: timeFromMs, timeTill: timeTillMs })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                
-                // DEBUG INSTRUMENTATION - Frontend raw payload
-                console.log('[DEBUG FRONTEND RAW] Payload completo recibido del backend:', JSON.stringify(data, null, 2));
-                console.log('[DEBUG FRONTEND MAPPED] Muestra procesada (primeros 5):', data.activeProblems?.slice(0, 5).map(p => ({
-                    id: p.eventid || p.problemid,
-                    name: p.name,
-                    severityLabel: p.severity,
-                    severityValue: p.priority,
-                    triggerPriority: p.trigger?.priority,
-                    eventSeverity: p.eventSeverity,
-                    rawKeys: Object.keys(p)
-                })));
-
-                // Client-side sanitization: filter out "Not classified" (severity 0) events
-                const sanitizedProblems = filterClassifiedProblems(data?.activeProblems);
-                
-                // Update data object with sanitized problems for downstream rendering
-                data.activeProblems = sanitizedProblems;
-                
-                renderDashboard(data);
-                // renderHostsAlertsTable is now called within renderDashboard with sanitized data
-            } else {
-                const errorData = await response.json();
-                showError(errorDiv, errorData.error || 'Error al generar el informe');
-            }
-        } catch (error) {
-            showError(errorDiv, 'Error de conexión al generar el informe');
-            console.error('Error al generar informe:', error);
-        }
+    document.getElementById('generate-report').addEventListener('click', () => {
+        // Use the specific group from the select dropdown (overrides button selection)
+        currentSelectedGroup = document.getElementById('host-group-select').value || 'all';
+        fetchDashboardData();
     });
     
     document.getElementById('export-html').addEventListener('click', async () => {
@@ -240,11 +322,41 @@ async function loadHostGroups() {
             option.textContent = group.name;
             select.appendChild(option);
         });
+        
+        // Also render group filter buttons
+        renderGroupButtons(groups);
     } catch (error) {
         console.error('Error al cargar grupos:', error);
         showError(document.getElementById('filter-error'), 'Error al cargar grupos de hosts');
     }
 }
+
+// Event listeners for time preset buttons
+document.getElementById('timePresetButtons').addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') {
+        document.querySelectorAll('#timePresetButtons .btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        const range = e.target.getAttribute('data-range');
+        setTimeRange(range);
+    }
+});
+
+// Event listeners for group filter buttons
+document.getElementById('groupFilterButtons').addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') {
+        document.querySelectorAll('#groupFilterButtons .btn').forEach(b => {
+            b.classList.remove('active', 'btn-primary');
+            b.classList.add('btn-outline-primary');
+        });
+        e.target.classList.add('active', 'btn-primary');
+        e.target.classList.remove('btn-outline-primary');
+
+        const selectedGroupId = e.target.getAttribute('data-group-id');
+        // Update global filter state and reload data
+        currentSelectedGroup = selectedGroupId;
+        fetchDashboardData();
+    }
+});
 
 function renderDashboard(data) {
     if (!data || !data.success) {

@@ -16,10 +16,43 @@
         <div id="login-error" class="error-message" style="display:none;"></div>
     </div>
     <div id="filters" style="display:none;">
-        <select id="host-group-select"></select>
-        <input type="datetime-local" id="timeFrom">
-        <input type="datetime-local" id="timeTill">
-        <button id="generate-report">Generar Informe</button>
+        <div class="filter-panel card p-3 mb-4">
+          <!-- Presets de Rango Temporal -->
+          <div class="mb-3">
+            <label class="font-weight-bold d-block">Rango de Temps Ràpid:</label>
+            <div class="btn-group btn-group-toggle flex-wrap" id="timePresetButtons" data-toggle="buttons">
+              <button type="button" class="btn btn-outline-primary btn-sm my-1 mr-1" data-range="1d">1 dia</button>
+              <button type="button" class="btn btn-outline-primary btn-sm my-1 mr-1" data-range="7d">7 dies</button>
+              <button type="button" class="btn btn-outline-primary btn-sm my-1 mr-1" data-range="1w">1 setmana</button>
+              <button type="button" class="btn btn-outline-primary btn-sm my-1 mr-1" data-range="1m">1 mes</button>
+            </div>
+          </div>
+
+          <!-- Botones dinámicos de Grupos de Hosts -->
+          <div class="mb-3">
+            <label class="font-weight-bold d-block">Grups d'Equips:</label>
+            <div class="btn-group flex-wrap" id="groupFilterButtons">
+              <button type="button" class="btn btn-primary btn-sm my-1 mr-1 active" data-group-id="all">Tots els grups</button>
+              <!-- Se cargan dinámicamente según la respuesta de hostgroup.get -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label for="host-group-select">Grup d'Hosts:</label>
+            <select id="host-group-select" class="form-control"></select>
+          </div>
+          <div class="form-group col-md-4">
+            <label for="timeFrom">Des de:</label>
+            <input type="datetime-local" id="timeFrom" class="form-control">
+          </div>
+          <div class="form-group col-md-4">
+            <label for="timeTill">Fins a:</label>
+            <input type="datetime-local" id="timeTill" class="form-control">
+          </div>
+        </div>
+        <button id="generate-report" class="btn btn-primary">Generar Informe</button>
         <div id="filter-error" class="error-message" style="display:none;"></div>
     </div>
     <div id="dashboard" style="display:none;">
